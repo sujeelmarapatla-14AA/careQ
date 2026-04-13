@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CareQ - Hospital Management System
 
 CareQ is a modernized hospital management dashboard system featuring a premium, dark-themed, glassmorphism-inspired interface. It consists of a Node.js/Express backend and a React/Vite frontend.
@@ -44,3 +45,7 @@ CareQ is a modernized hospital management dashboard system featuring a premium, 
 
 ## Deployment
 Instructions for deploying the application will go here.
+=======
+# careQ
+CareQ is a smart healthcare platform that connects patients with trusted caregivers and medical support services. It simplifies care management through task coordination, real-time communication, and personalized assistance—making healthcare more accessible, efficient, and human-centered.
+>>>>>>> c8fb8ce64eab5bbaa33fe85cc24ecabfb37d6e89
