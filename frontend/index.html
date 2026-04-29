@@ -2,16 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Preload Critical Typography for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@400..800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    
+    <!-- Meta Tags & SEO -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <meta name="description" content="CareQ - The premier, 3D-mapped, real-time hospital management and smart flow platform. Unifying triage with elegant technology." />
-    <meta name="theme-color" content="#0ea5e9" id="theme-color-meta" />
+    <meta name="description" content="CareQ - Premium Enterprise Medical OS for Smart Healthcare Flow" />
+    <meta name="theme-color" content="#09090B" id="theme-color-meta" />
     <meta name="author" content="CareQ Team" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
     <meta property="og:title" content="CareQ - Premium Healthcare Flow" />
     <meta property="og:description" content="Intelligent, 3D-mapped medical command matrix." />
+    <meta property="og:image" content="https://careq.com/og-image.jpg" />
+    
     <title>CareQ | Smart Healthcare Flow</title>
+    <script>
+      (function() {
+        var savedTheme = localStorage.getItem('careq-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

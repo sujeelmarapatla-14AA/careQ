@@ -1,118 +1,133 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, Sun, Menu, X } from 'lucide-react';
-import { useTheme } from './ThemeContext';
+import { Menu, X, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Chart as ChartJS } from 'chart.js';
 
 export default function Navbar() {
-  const { theme, toggleTheme } = useTheme();
-  const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('careq-theme') || 'dark');
   const location = useLocation();
   const navigate = useNavigate();
 
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    localStorage.setItem('careq-theme', nextTheme);
+    window.dispatchEvent(new Event('theme-change')); // Trigger chart updates if needed
+    
+    // Update Chart.js instances if they exist
+    if (ChartJS && ChartJS.instances) {
+      const isDark = nextTheme === 'dark';
+      const gridColor  = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)';
+      const labelColor = isDark ? '#94a3b8' : '#475569';
+      const accentColor = isDark ? '#00d4ff' : '#0284c7';
+
+      Object.values(ChartJS.instances).forEach(chart => {
+        if (chart.options.scales) {
+          Object.values(chart.options.scales).forEach(scale => {
+            if (scale.grid) scale.grid.color = gridColor;
+            if (scale.ticks) scale.ticks.color = labelColor;
+          });
+        }
+        chart.update();
+      });
+    }
+  };
+
   let loggedInUser = localStorage.getItem('careq_username');
+  let userRole = localStorage.getItem('careq_role');
   if (loggedInUser === 'undefined' || loggedInUser === 'null') {
     loggedInUser = null;
+    userRole = null;
   }
 
   const handleLogout = async () => {
     try {
         await fetch('http://localhost:5000/api/auth/logout', { method: 'POST' });
-    } catch (e) {
-        // Handle gracefully if backend is offline
-    }
+    } catch (e) {}
     localStorage.removeItem('careq_token');
     localStorage.removeItem('careq_username');
+    localStorage.removeItem('careq_role');
     navigate('/login');
   };
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const navLinks = [
-    { name: 'Patient Portal', path: '/patient' },
-    { name: 'Staff Dashboard', path: '/staff' },
-    { name: 'Admin Centre', path: '/admin' },
-    { name: 'Register Patient', path: '/register' } // dummy path if it doesn't exist
+  const publicLinks = [
+    { name: 'Home', path: '/' },
+    { name: 'Patient Portal', path: '/patient' }
   ];
+  
+  const staffLinks = [
+    { name: 'Dashboard', path: '/staff' }
+  ];
+
+  const adminLinks = [
+    { name: 'Overview', path: '/admin' }
+  ];
+
+  let navLinks = publicLinks;
+  if (userRole === 'admin') navLinks = adminLinks;
+  else if (userRole === 'staff') navLinks = staffLinks;
+  else if (loggedInUser) navLinks = [{ name: 'Home', path: '/' }, { name: 'Patient Portal', path: '/patient' }];
 
   const isDashboard = ['/staff', '/admin', '/patient'].includes(location.pathname);
 
   return (
-    <motion.header
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6, type: 'spring', bounce: 0.2 }}
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        padding: '1.2rem 2.5rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: scrolled ? 'var(--nav-bg)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid var(--glass-border)' : '1px solid transparent',
-        transition: 'all 0.3s ease'
-      }}
-    >
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }} aria-label="CareQ Home">
-        <span className="title-gradient" style={{ fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.5px' }}>CareQ</span>
+    <nav className="navbar">
+      <Link to="/" className="logo">
+        Care<span>Q</span>
       </Link>
 
       {/* Desktop Nav */}
-      <nav style={{ display: 'none', gap: '2.5rem', alignItems: 'center' }} className="desktop-nav">
-        {navLinks.map(link => {
-          const isActive = location.pathname === link.path;
-          return (
-            <Link 
-              key={link.path}
-              to={link.path} 
-              style={{ 
-                color: isActive ? 'var(--primary-blue)' : 'var(--text-muted)', 
-                textDecoration: 'none', 
-                fontWeight: isActive ? 600 : 500,
-                fontSize: '0.95rem',
-                transition: 'color 0.2s',
-                position: 'relative'
-              }}
-            >
-              {link.name}
-              {isActive && (
-                 <motion.div layoutId="nav-underline" style={{ position: 'absolute', bottom: '-4px', left: 0, right: 0, height: '2px', background: 'var(--primary-blue)', borderRadius: '2px' }} />
-              )}
-            </Link>
-          );
-        })}
+      <div className="nav-content desktop-nav" style={{ width: 'auto' }}>
+        <div className="nav-links">
+          {navLinks.map(link => {
+            const isActive = location.pathname === link.path;
+            return (
+              <Link 
+                key={link.path}
+                to={link.path} 
+                className={isActive ? 'active' : ''}
+              >
+                {link.name}
+              </Link>
+            );
+          })}
+        </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginLeft: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
           {isDashboard && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success-green)', boxShadow: '0 0 10px var(--success-green)' }}></div>
+            <div className="live-badge">
+               <div className="live-dot"></div>
                Live
             </div>
           )}
           {loggedInUser ? (
-             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-               <span style={{ color: 'var(--text-main)', fontSize: '0.95rem', fontWeight: 600 }}>{loggedInUser.split('@')[0]}</span>
-               <button onClick={handleLogout} className="btn" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)', padding: '6px 12px', fontSize: '0.85rem' }}>Logout</button>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+               <button onClick={toggleTheme} className="btn-ghost" style={{ padding: '6px', borderRadius: '50%' }} title="Toggle Theme">
+                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+               </button>
+               <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)' }}>
+                 {loggedInUser.split('@')[0]}
+               </span>
+               <button onClick={handleLogout} className="btn-ghost">Logout</button>
              </div>
           ) : (
-             <Link to="/login" className="btn" style={{ textDecoration: 'none' }}>Staff Login</Link>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+               <button onClick={toggleTheme} className="btn-ghost" style={{ padding: '6px', borderRadius: '50%' }} title="Toggle Theme">
+                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+               </button>
+               <Link to="/login" className="btn-primary" style={{ textDecoration: 'none' }}>Login</Link>
+             </div>
           )}
         </div>
-      </nav>
+      </div>
 
       {/* Mobile Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} className="mobile-toggle">
-        {isDashboard && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success-green)', boxShadow: '0 0 10px var(--success-green)' }}></div>}
-        <button onClick={() => setMobileOpen(!mobileOpen)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer' }} aria-label="Menu">
+      <div className="mobile-toggle" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        {isDashboard && <div className="live-dot"></div>}
+        <button onClick={() => setMobileOpen(!mobileOpen)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }} aria-label="Menu">
           {mobileOpen ? <X /> : <Menu />}
         </button>
       </div>
@@ -121,30 +136,30 @@ export default function Navbar() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: -20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -20 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="glass-panel"
-            style={{ position: 'absolute', top: '100%', left: '1rem', right: '1rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', zIndex: 100 }}
+            className="form-section-card"
+            style={{ position: 'absolute', top: '100%', left: '1rem', right: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', zIndex: 100 }}
           >
             {navLinks.map(link => (
               <Link 
                 key={link.path}
                 to={link.path} 
                 onClick={() => setMobileOpen(false)}
-                style={{ color: location.pathname === link.path ? 'var(--primary-blue)' : 'var(--text-main)', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem' }}
+                style={{ color: location.pathname === link.path ? 'var(--accent-primary)' : 'var(--text-primary)', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem' }}
               >
                 {link.name}
               </Link>
             ))}
             {loggedInUser ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
-                 <p style={{ color: 'var(--text-main)', textAlign: 'center', fontWeight: '600' }}>{loggedInUser}</p>
-                 <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="btn" style={{ width: '100%', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}>Logout</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+                 <p style={{ color: 'var(--text-primary)', textAlign: 'center', fontWeight: '600' }}>{loggedInUser}</p>
+                 <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="btn-danger" style={{ width: '100%' }}>Logout</button>
               </div>
             ) : (
-               <Link to="/login" onClick={() => setMobileOpen(false)} className="btn btn-green" style={{ textDecoration: 'none', textAlign: 'center' }}>Staff Login</Link>
+               <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-primary" style={{ textDecoration: 'none', textAlign: 'center' }}>Login</Link>
             )}
           </motion.div>
         )}
@@ -155,8 +170,7 @@ export default function Navbar() {
           .desktop-nav { display: flex !important; }
           .mobile-toggle { display: none !important; }
         }
-        .theme-toggle:hover { background: var(--surface-color) !important; }
       `}} />
-    </motion.header>
+    </nav>
   );
 }

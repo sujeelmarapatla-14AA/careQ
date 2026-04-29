@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Shield, Zap, LayoutDashboard, HeartPulse, CheckCircle, List, Grid, Brain } from 'lucide-react';
 import TiltCard from '../components/TiltCard';
-import { apiFetch } from '../api';
+import { apiFetch, BASE_URL } from '../api';
+import { io } from 'socket.io-client';
 
 const CountUp = ({ end, duration = 1.2 }) => {
   const [count, setCount] = useState(0);
@@ -45,25 +46,29 @@ export default function Landing() {
     fetchStats();
     const stIntv = setInterval(fetchStats, 30000);
     
-    // original hologram grid intervals
-    const interval = setInterval(() => {
-       setSimQueue(prev => {
-          let n = [...prev];
-          if(Math.random() > 0.4 && n.length < 5) {
-             n.push({ id: Math.random(), token: 'T-'+Math.floor(1000 + Math.random()*9000), sev: Math.floor(Math.random()*100) });
-             n.sort((a,b) => b.sev - a.sev);
-          } else if(n.length > 2 && Math.random() > 0.5) { 
-             n.shift(); 
-          }
-          return n;
-       });
-       setSimBeds(prev => prev.map(b => ({
-           ...b, 
-           status: Math.random() > 0.85 ? (b.status === 'available' ? 'occupied' : 'available') : b.status 
-       })));
-    }, 2800);
+    // Connect socket for real-time updates
+    const socket = io(BASE_URL);
     
-    return () => { clearInterval(interval); clearInterval(stIntv); };
+    socket.on('queue:update', (data) => {
+        if(data && Array.isArray(data.queue)) {
+            setSimQueue(data.queue.slice(0, 6)); // Top 6 queue items
+        }
+    });
+
+    socket.on('bed:update', (data) => {
+        if(data && Array.isArray(data.beds)) {
+            setSimBeds(data.beds);
+            // Optionally update available count
+            setStats(prev => ({...prev, bedsAvailable: data.beds.filter(b=>b.status==='available').length}));
+        }
+    });
+
+    // fallback fetch if socket unpopulated initially
+    apiFetch('/api/stats').then(d=>{ if(!d.error) setStats(d); }).catch(()=>{});
+    apiFetch('/api/queue').then(q=>{ if(!q.error && q.queue) setSimQueue(q.queue.slice(0, 6)); }).catch(()=>{});
+    apiFetch('/api/beds').then(b=>{ if(!b.error && b.beds) setSimBeds(b.beds); }).catch(()=>{});
+    
+    return () => { clearInterval(stIntv); socket.disconnect(); };
   }, []);
 
   const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.12 } } };
@@ -99,8 +104,8 @@ export default function Landing() {
                </motion.p>
                
                <motion.div variants={lineAnim} style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '3rem' }}>
-                  <Link to="/patient"><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-green" style={{ padding: '16px 36px', fontSize: '1.1rem', letterSpacing: '1px' }}>Initiate Patient Node</motion.button></Link>
-                  <Link to="/login"><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn" style={{ padding: '16px 36px', fontSize: '1.1rem', background: 'var(--surface-color)', backdropFilter: 'blur(10px)' }}>Access Staff Gateway</motion.button></Link>
+                  <Link to="/patient"><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-green" style={{ padding: '16px 36px', fontSize: '1.1rem', letterSpacing: '1px' }}>Register a Patient</motion.button></Link>
+                  <a href="#queue"><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn" style={{ padding: '16px 36px', fontSize: '1.1rem', background: 'var(--surface-color)', backdropFilter: 'blur(10px)' }}>Check Queue Status</motion.button></a>
                </motion.div>
 
                {/* Live Stats Bar */}
@@ -157,9 +162,9 @@ export default function Landing() {
 
       {/* SIMULATION SECTION */}
       <section style={{ background: 'var(--surf)', padding: '12vh 0' }}>
-        <motion.div className="container" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}>
-           <motion.h2 variants={lineAnim} className="title-gradient" style={{ textAlign: 'center', fontSize: '3rem', marginBottom: '1rem' }}>Hologrid Live Simulation</motion.h2>
-           <motion.p variants={lineAnim} style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '4rem', fontSize: '1.1rem' }}>Visually monitoring internal logic loops. Zero manual interaction required.</motion.p>
+         <motion.div className="container" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer} id="queue">
+           <motion.h2 variants={lineAnim} className="title-gradient" style={{ textAlign: 'center', fontSize: '3rem', marginBottom: '1rem' }}>Live Bed & Queue Status</motion.h2>
+           <motion.p variants={lineAnim} style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '4rem', fontSize: '1.1rem' }}>Visually monitoring real-time patient load and infrastructure availability.</motion.p>
            
            <div className="dashboard-grid">
               <motion.div whileHover={{ scale: 1.01 }} className="glass-panel" style={{ padding: '2.5rem', background: 'var(--surf2)' }}>

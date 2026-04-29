@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareQ Bed Modal Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #0ea5e9;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        .status {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+        .status-icon {
+            font-size: 1.5rem;
+        }
+        .bed-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .bed {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-weight: 600;
+        }
+        .bed:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .bed.available {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            color: #10b981;
+        }
+        .bed.occupied {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        .bed.maintenance {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+        .bed-id {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+        .bed-status {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-title {
+            color: #0ea5e9;
+            font-size: 1.8rem;
+        }
+        .close-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .info-item {
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .info-label {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+        .info-value {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+        .btn-green {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+        .btn-green:hover {
+            background: rgba(16, 185, 129, 0.3);
+        }
+        .btn-red {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+        .btn-red:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+        .log {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .log-time {
+            color: #94a3b8;
+            margin-right: 8px;
+        }
+        .success {
+            color: #10b981;
+        }
+        .error {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛏️ CareQ Bed Modal Test</h1>
+        
+        <div class="status">
+            <div class="status-item">
+                <span class="status-icon" id="backend-status">⏳</span>
+                <span id="backend-text">Connecting to backend...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-icon" id="socket-status">⏳</span>
+                <span id="socket-text">Connecting to Socket.io...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-icon" id="beds-status">⏳</span>
+                <span id="beds-text">Loading beds...</span>
+            </div>
+        </div>
+
+        <h2 style="margin-bottom: 15px;">Click any bed to test modal:</h2>
+        <div class="bed-grid" id="bed-grid"></div>
+
+        <h2 style="margin-top: 30px; margin-bottom: 15px;">Event Log:</h2>
+        <div class="log" id="log"></div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Bed Details</h2>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let beds = [];
+        const log = document.getElementById('log');
+
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-time">[${time}]</span>${message}`;
+            log.insertBefore(entry, log.firstChild);
+        }
+
+        function updateStatus(id, icon, text, color) {
+            document.getElementById(id + '-status').textContent = icon;
+            document.getElementById(id + '-text').textContent = text;
+            document.getElementById(id + '-text').style.color = color;
+        }
+
+        // Connect to backend
+        async function testBackend() {
+            try {
+                const response = await fetch('http://localhost:5000/api/beds', {
+                    headers: { 'Authorization': 'Bearer bypass' }
+                });
+                
+                if (response.ok) {
+                    beds = await response.json();
+                    updateStatus('backend', '✅', `Backend connected - ${beds.length} beds loaded`, '#10b981');
+                    updateStatus('beds', '✅', `${beds.length} beds loaded successfully`, '#10b981');
+                    addLog(`✅ Backend API responding - ${beds.length} beds loaded`, 'success');
+                    renderBeds();
+                } else {
+                    throw new Error('API returned error');
+                }
+            } catch (error) {
+                updateStatus('backend', '❌', 'Backend connection failed', '#ef4444');
+                updateStatus('beds', '❌', 'Failed to load beds', '#ef4444');
+                addLog(`❌ Backend connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Connect to Socket.io
+        function connectSocket() {
+            socket = io('http://localhost:5000');
+            
+            socket.on('connect', () => {
+                updateStatus('socket', '✅', 'Socket.io connected', '#10b981');
+                addLog('✅ Socket.io connected successfully', 'success');
+            });
+
+            socket.on('disconnect', () => {
+                updateStatus('socket', '❌', 'Socket.io disconnected', '#ef4444');
+                addLog('❌ Socket.io disconnected', 'error');
+            });
+
+            socket.on('bed:update', (data) => {
+                addLog(`🔄 Bed update received: ${data.bedId} - ${data.action}`, 'success');
+                testBackend(); // Reload beds
+            });
+
+            socket.on('bedsUpdate', (data) => {
+                addLog(`🔄 Beds update received - ${data.length} beds`, 'success');
+                beds = data;
+                renderBeds();
+            });
+        }
+
+        // Render beds
+        function renderBeds() {
+            const grid = document.getElementById('bed-grid');
+            grid.innerHTML = '';
+            
+            beds.slice(0, 20).forEach(bed => { // Show first 20 beds
+                const bedEl = document.createElement('div');
+                bedEl.className = `bed ${bed.status}`;
+                bedEl.innerHTML = `
+                    <div class="bed-id">${bed.bedId}</div>
+                    <div class="bed-status">${bed.status}</div>
+                `;
+                bedEl.onclick = () => openModal(bed);
+                grid.appendChild(bedEl);
+            });
+        }
+
+        // Open modal
+        function openModal(bed) {
+            addLog(`🖱️ Clicked bed: ${bed.bedId} (${bed.status})`, 'info');
+            
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modal-title');
+            const body = document.getElementById('modal-body');
+            
+            title.textContent = `🛏️ Bed ${bed.bedId}`;
+            
+            let content = `
+                <div style="background: rgba(14,165,233,0.1); border: 1px solid #0ea5e9; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                    <div style="color: #0ea5e9; font-weight: 600; margin-bottom: 8px;">Status: ${bed.status.toUpperCase()}</div>
+                    <div style="color: #94a3b8;">Ward: ${bed.ward}</div>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Bed ID</div>
+                        <div class="info-value">${bed.bedId}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Category</div>
+                        <div class="info-value">${bed.category}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ward</div>
+                        <div class="info-value">${bed.ward}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">${bed.status}</div>
+                    </div>
+                </div>
+            `;
+            
+            if (bed.status === 'occupied' && bed.patientName) {
+                content += `
+                    <div style="background: rgba(239,68,68,0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 16px; margin-top: 20px;">
+                        <div style="color: #ef4444; font-weight: 600; margin-bottom: 12px;">Current Patient</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Token</div>
+                                <div class="info-value">${bed.patientToken || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Name</div>
+                                <div class="info-value">${bed.patientName || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Doctor</div>
+                                <div class="info-value">${bed.assignedDoctor || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Admitted</div>
+                                <div class="info-value">${bed.assignedAt ? new Date(bed.assignedAt).toLocaleDateString() : 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (bed.status === 'available') {
+                content += `<button class="btn btn-green" onclick="testAssign('${bed.bedId}')">✅ Test Assign</button>`;
+            } else if (bed.status === 'occupied') {
+                content += `<button class="btn btn-red" onclick="testRelease('${bed.bedId}')">🚪 Test Release</button>`;
+            }
+            
+            body.innerHTML = content;
+            modal.classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // Test assign
+        function testAssign(bedId) {
+            addLog(`🔄 Testing assign for bed ${bedId}...`, 'info');
+            socket.emit('bed:assign', {
+                bedId: bedId,
+                patientToken: 'TEST-001',
+                patientName: 'Test Patient',
+                patientAge: 35,
+                patientGender: 'Male',
+                department: 'General',
+                assignedDoctor: 'Dr. Test',
+                assignedBy: 'Test Staff',
+                admissionNotes: 'Test admission'
+            });
+            closeModal();
+        }
+
+        // Test release
+        function testRelease(bedId) {
+            addLog(`🔄 Testing release for bed ${bedId}...`, 'info');
+            socket.emit('bed:release', {
+                bedId: bedId,
+                staffName: 'Test Staff',
+                reason: 'Test discharge'
+            });
+            closeModal();
+        }
+
+        // Close modal on background click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') closeModal();
+        });
+
+        // Initialize
+        addLog('🚀 Starting CareQ Bed Modal Test...', 'info');
+        testBackend();
+        connectSocket();
+    </script>
+</body>
+</html>

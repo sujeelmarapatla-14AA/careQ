@@ -12,6 +12,7 @@ import Auth from './pages/Auth';
 const PatientDashboard = lazy(() => import('./pages/PatientDashboard'));
 const StaffDashboard = lazy(() => import('./pages/StaffDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('careq_token');
@@ -52,6 +53,7 @@ function App() {
                     <AdminDashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </main>

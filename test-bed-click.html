@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Bed Control</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body style="background: #0a1628; color: white; font-family: Arial; padding: 40px;">
+    <h1>🛏️ Test Bed Control System</h1>
+    
+    <div style="margin: 20px 0;">
+        <h2>Step 1: Connect to Server</h2>
+        <button onclick="connectSocket()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
+            Connect to Backend
+        </button>
+        <div id="connectionStatus" style="margin-top: 10px;"></div>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <h2>Step 2: Test Bed Assignment</h2>
+        <button onclick="testAssignBed()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #10b981; color: white; border: none; border-radius: 8px;">
+            Assign Patient to Bed GM-01
+        </button>
+        <div id="assignStatus" style="margin-top: 10px;"></div>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <h2>Step 3: Test Bed Release</h2>
+        <button onclick="testReleaseBed()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #ef4444; color: white; border: none; border-radius: 8px;">
+            Release Bed GM-01
+        </button>
+        <div id="releaseStatus" style="margin-top: 10px;"></div>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <h2>Live Updates:</h2>
+        <div id="liveUpdates" style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; min-height: 200px; max-height: 400px; overflow-y: auto;">
+            Waiting for events...
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        const updates = [];
+
+        function addUpdate(message, color = '#00bcd4') {
+            const timestamp = new Date().toLocaleTimeString();
+            updates.unshift(`<div style="color: ${color}; margin: 5px 0;">[${timestamp}] ${message}</div>`);
+            document.getElementById('liveUpdates').innerHTML = updates.join('');
+        }
+
+        function connectSocket() {
+            socket = io('http://localhost:5000');
+            
+            socket.on('connect', () => {
+                document.getElementById('connectionStatus').innerHTML = '<span style="color: #10b981;">✅ Connected to backend!</span>';
+                addUpdate('✅ Connected to backend', '#10b981');
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById('connectionStatus').innerHTML = '<span style="color: #ef4444;">❌ Disconnected</span>';
+                addUpdate('❌ Disconnected from backend', '#ef4444');
+            });
+
+            socket.on('bed:assignSuccess', (data) => {
+                document.getElementById('assignStatus').innerHTML = `<span style="color: #10b981;">✅ ${data.message}</span>`;
+                addUpdate('✅ BED ASSIGNED: ' + data.message, '#10b981');
+            });
+
+            socket.on('bed:releaseSuccess', (data) => {
+                document.getElementById('releaseStatus').innerHTML = `<span style="color: #10b981;">✅ ${data.message}</span>`;
+                addUpdate('✅ BED RELEASED: ' + data.message, '#10b981');
+            });
+
+            socket.on('bed:error', (data) => {
+                addUpdate('❌ ERROR: ' + data.message, '#ef4444');
+            });
+
+            socket.on('bed:update', (data) => {
+                addUpdate(`📢 BED UPDATE: ${data.action} - Bed ${data.bedId}`, '#00bcd4');
+            });
+
+            socket.on('bedsUpdate', (data) => {
+                addUpdate(`📊 Beds data updated (${data.length} beds)`, '#f59e0b');
+            });
+        }
+
+        function testAssignBed() {
+            if (!socket) {
+                alert('Please connect to backend first!');
+                return;
+            }
+
+            addUpdate('🔄 Attempting to assign bed GM-01...', '#f59e0b');
+
+            socket.emit('bed:assign', {
+                bedId: 'GM-01',
+                patientToken: 'A-001',
+                patientName: 'Test Patient',
+                patientAge: 35,
+                patientGender: 'Male',
+                patientPhone: '1234567890',
+                department: 'General',
+                assignedDoctor: 'Dr. Suresh Reddy',
+                assignedBy: 'Test Staff',
+                admissionNotes: 'Test admission via control panel',
+                expectedDischarge: null
+            });
+        }
+
+        function testReleaseBed() {
+            if (!socket) {
+                alert('Please connect to backend first!');
+                return;
+            }
+
+            addUpdate('🔄 Attempting to release bed GM-01...', '#f59e0b');
+
+            socket.emit('bed:release', {
+                bedId: 'GM-01',
+                staffName: 'Test Staff',
+                reason: 'Test discharge'
+            });
+        }
+    </script>
+</body>
+</html>

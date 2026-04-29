@@ -1,56 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, Activity } from 'lucide-react';
 import { BASE_URL, apiFetch } from '../api';
-
-const CountUp = ({ end, duration = 1.2 }) => {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const increment = end / (duration * 60);
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) { setCount(end); clearInterval(timer); }
-      else setCount(Math.floor(start));
-    }, 1000 / 60);
-    return () => clearInterval(timer);
-  }, [end, duration]);
-  return <span>{count}</span>;
-}
+import ResourceDashboard from '../components/ResourceDashboard';
 
 export default function StaffDashboard() {
+  const [activeView, setActiveView] = useState('queue'); // 'queue' or 'resources'
   const [activeTab, setActiveTab] = useState('General');
 
   const [queue, setQueue] = useState([]);
   const [beds, setBeds] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [metrics, setMetrics] = useState({ totalWaiting: 0, occupiedBeds: 0, totalBeds: 0, avgWaitMinutes: 0, emergencies: 0 });
   const [dismissEmergencies, setDismissEmergencies] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showPatientModal, setShowPatientModal] = useState(false);
+  const [viewingPatient, setViewingPatient] = useState(null);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [assignmentBedId, setAssignmentBedId] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState('');
+  const [showRoomOnlyModal, setShowRoomOnlyModal] = useState(false);
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    // Initial fetch
     apiFetch('/api/queue').then(data => { if (Array.isArray(data)) setQueue(data); });
     apiFetch('/api/beds').then(data => { if (Array.isArray(data)) setBeds(normalizeBeds(data)); });
+    apiFetch('/api/rooms').then(data => { if (Array.isArray(data)) setRooms(data); });
     apiFetch('/api/stats').then(data => { if (data && !data.error) setMetrics(data); });
 
-    // Real-time updates
-    const socket = io(BASE_URL);
-    socket.on('queueUpdate', (data) => { if (Array.isArray(data)) { setQueue(data); fetchStats(); } });
-    socket.on('bedsUpdate', (data) => { if (Array.isArray(data)) { setBeds(normalizeBeds(data)); fetchStats(); } });
+    socketRef.current = io(BASE_URL);
+    socketRef.current.on('queueUpdate', (data) => { if (Array.isArray(data)) { setQueue(data); fetchStats(); } });
+    socketRef.current.on('bedsUpdate', (data) => { if (Array.isArray(data)) { setBeds(normalizeBeds(data)); fetchStats(); } });
+    socketRef.current.on('resource:updated', () => { apiFetch('/api/rooms').then(data => { if (Array.isArray(data)) setRooms(data); }); });
     
-    // Fallback polling for stats just tightly sync UI
     const fetchStats = () => apiFetch('/api/stats').then(data => { if(data && !data.error) setMetrics(prev => ({...prev, ...data}))});
     fetchStats();
-    // manually calc emergencies since /api/stats might not have it. Wait, previously /api/dashboard/metrics returned it.
-    // I rewrote /api/stats but I didn't verify it returned emergencies!
-    // Since I can count emergencies directly from `queue` socket:
-    return () => socket.disconnect();
+    
+    return () => socketRef.current.disconnect();
   }, []);
 
-  // Update emergencies dynamically from state to ensure it tracks perfectly
   const currentEmergencies = queue.filter(q => q.severity >= 80).length;
 
-  // Map DB beds to UI format
   const normalizeBeds = (rows) => rows.map(b => ({
     id: b.id,
     displayId: `B-${String(b.id).padStart(2, '0')}`,
@@ -61,123 +52,174 @@ export default function StaffDashboard() {
 
   const updateBedStatus = async (bedId, status) => {
     await apiFetch(`/api/beds/${bedId}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    if(socketRef.current) socketRef.current.emit('bed:update', { bedId, status });
   };
 
-  const updateQueueStatus = async (id, status) => {
-    await apiFetch(`/api/queue/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  const assignPatientToBed = async (bedId, patient) => {
+    const staffName = localStorage.getItem('careq_staff_name') || 'Staff Member';
+    if(socketRef.current) {
+      socketRef.current.emit('bed:assign', {
+        bedId: bedId,
+        patientToken: patient.token_number || patient.token,
+        patientName: patient.patient_name || patient.fullName,
+        patientAge: patient.age,
+        patientGender: patient.gender,
+        patientPhone: patient.phone,
+        department: patient.department,
+        assignedDoctor: 'Dr. Suresh Reddy',
+        assignedBy: staffName,
+        admissionNotes: `Assigned from queue - ${patient.condition || 'General consultation'}`,
+        expectedDischarge: null
+      });
+    }
+    
+    if (selectedRoom) {
+      const need = patient.department === 'Radiology' || patient.condition?.toLowerCase().includes('scan') 
+        ? 'Needs Scan' : 'Needs Checkup';
+      await apiFetch(`/api/rooms/${selectedRoom}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          patientName: patient.patient_name || patient.fullName,
+          need: need,
+          notes: `Assigned with bed ${bedId}`
+        })
+      });
+    }
+    
+    setSelectedPatient(null);
+    setSelectedRoom('');
+    setShowAssignmentModal(false);
+  };
+
+  const assignPatientToRoomOnly = async (roomId, patient) => {
+    const need = patient.department === 'Radiology' || patient.condition?.toLowerCase().includes('scan') 
+      ? 'Needs Scan' : 'Needs Checkup';
+    await apiFetch(`/api/rooms/${roomId}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        patientName: patient.patient_name || patient.fullName,
+        need: need,
+        notes: `Assigned from queue - ${patient.condition || 'General consultation'}`
+      })
+    });
+    
+    setSelectedPatient(null);
+    setSelectedRoom('');
+    setShowRoomOnlyModal(false);
+    setShowPatientModal(false);
   };
 
   const getUrgencyTag = (sev) => {
-    if (sev >= 80) return { label: 'Emergency', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', barColor: 'var(--red)' };
-    if (sev >= 31) return { label: 'High', color: '#eab308', bg: 'rgba(234, 179, 8, 0.15)', barColor: 'var(--amber)' };
-    return { label: 'Normal', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', barColor: 'var(--teal)' };
-  };
-
-  const getBedColor = (status) => {
-    switch(status) {
-      case 'occupied': return { border: 'rgba(239, 68, 68, 0.3)', text: '#ef4444', dot: '#ef4444' };
-      case 'available': return { border: 'rgba(16, 185, 129, 0.3)', text: '#10b981', dot: '#10b981' };
-      case 'cleaning': return { border: 'rgba(234, 179, 8, 0.3)', text: '#eab308', dot: '#eab308' };
-      default: return { border: 'rgba(148, 163, 184, 0.3)', text: '#94a3b8', dot: '#94a3b8' };
-    }
+    if (sev >= 80) return { label: 'Emergency', class: 'emergency' };
+    if (sev >= 31) return { label: 'High Priority', class: 'high' };
+    return { label: 'Normal', class: 'normal' };
   };
 
   const showBanner = currentEmergencies > 0 && !dismissEmergencies;
   const filteredBeds = beds.filter(b => b.ward === activeTab);
   const availableBeds = beds.filter(b => b.status === 'available').length;
-  // Queue stats usually derived from queue network
   const totalWaiting = queue.length;
 
   return (
-    <div className="page-enter container" style={{ padding: '2rem', maxWidth: '1400px' }}>
+    <div className="container">
       
       <AnimatePresence>
         {showBanner && (
            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
-             <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--urgent-red)', padding: '12px 24px', borderRadius: '12px', color: 'var(--urgent-red)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', boxShadow: '0 4px 20px rgba(239,68,68,0.3)' }}>
+             <div style={{ background: 'var(--icu-critical-bg)', border: '1px solid var(--icu-critical-border)', padding: '12px 24px', borderRadius: '12px', color: 'var(--status-danger)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><AlertTriangle /> <span>⚠ {currentEmergencies} Emergency patient(s) in queue — severity &gt; 80! Focus immediate medical intervention.</span></div>
-               <button onClick={() => setDismissEmergencies(true)} style={{ background: 'none', border: 'none', color: 'var(--urgent-red)', cursor: 'pointer' }}><X size={20} /></button>
+               <button onClick={() => setDismissEmergencies(true)} style={{ background: 'none', border: 'none', color: 'var(--status-danger)', cursor: 'pointer' }}><X size={20} /></button>
              </div>
            </motion.div>
         )}
       </AnimatePresence>
 
-      <header style={{ marginBottom: '2rem' }}>
-        <p style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '1px', marginBottom: '0.3rem' }}>Staff Dashboard</p>
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-main)' }}>Live queue & bed management</h1>
+      <header className="mb-6">
+        <div className="section-tag">Staff Dashboard</div>
+        <h1 className="text-2xl" style={{ color: 'var(--text-primary)' }}>Live Queue & Bed Management</h1>
+        
+        <div style={{ display: 'flex', gap: '8px', marginTop: '1.5rem', background: 'var(--bg-overlay)', borderRadius: '12px', padding: '6px', width: 'max-content' }}>
+          <button onClick={() => setActiveView('queue')} className={`btn ${activeView === 'queue' ? 'btn-secondary' : 'btn-ghost'}`} style={{ border: activeView === 'queue' ? '1px solid var(--accent-primary)' : '1px solid transparent', color: activeView === 'queue' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
+            Queue & Beds
+          </button>
+          <button onClick={() => setActiveView('resources')} className={`btn ${activeView === 'resources' ? 'btn-secondary' : 'btn-ghost'}`} style={{ border: activeView === 'resources' ? '1px solid var(--accent-primary)' : '1px solid transparent', color: activeView === 'resources' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
+            <Activity size={18} /> Resource Availability
+          </button>
+        </div>
       </header>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {activeView === 'queue' && (
+      <div className="flex-col gap-6">
         
-        {/* Metric Row - Proper 4 column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(200px, 1fr))', gap: '1.5rem' }}>
-          <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--cyan)' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem' }}>Total Waiting</p>
-            <div className="monospace" style={{ fontSize: '2.5rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1 }}><CountUp end={totalWaiting} /></div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.8rem' }}>in queue now</p>
+        <div className="dashboard-grid">
+          <div className="stat-card">
+            <span className="stat-label">Total Waiting</span>
+            <div className="stat-value">{totalWaiting}</div>
+            <span className="stat-sub">in queue now</span>
           </div>
-          <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--teal)' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem' }}>Beds Available</p>
-            <div className="monospace" style={{ fontSize: '2.5rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1 }}><CountUp end={availableBeds} /></div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.8rem' }}>of {beds.length} total</p>
+          <div className="stat-card">
+            <span className="stat-label">Beds Available</span>
+            <div className="stat-value success">{availableBeds}</div>
+            <span className="stat-sub">of {beds.length} total</span>
           </div>
-          <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--amber)' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem' }}>Avg Wait</p>
-            <div className="monospace" style={{ fontSize: '2.5rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1 }}><CountUp end={metrics.avgWaitMinutes || (totalWaiting * 8)} /><span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>m</span></div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.8rem' }}>estimated</p>
+          <div className="stat-card">
+            <span className="stat-label">Avg Wait</span>
+            <div className="stat-value">{metrics.avgWaitMinutes || (totalWaiting * 8)}<span className="text-lg" style={{ color: 'var(--text-muted)', marginLeft: '4px' }}>m</span></div>
+            <span className="stat-sub">estimated</span>
           </div>
-          <div className={`glass-panel ${currentEmergencies > 0 ? 'flash-red' : ''}`} style={{ padding: '1.5rem', borderLeft: '4px solid var(--red)' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1rem' }}>Emergencies</p>
-            <div className="monospace" style={{ fontSize: '2.5rem', fontWeight: 600, color: currentEmergencies > 0 ? 'var(--urgent-red)' : 'var(--text-main)', lineHeight: 1 }}><CountUp end={currentEmergencies} /></div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.8rem' }}>severity &gt; 80</p>
+          <div className={`stat-card ${currentEmergencies > 0 ? 'flash-red' : ''}`} style={currentEmergencies > 0 ? {borderColor: 'var(--status-danger)'} : {}}>
+            <span className="stat-label">Emergencies</span>
+            <div className={`stat-value ${currentEmergencies > 0 ? 'danger' : ''}`}>{currentEmergencies}</div>
+            <span className="stat-sub">severity &gt; 80</span>
           </div>
         </div>
 
-        {/* Dual Panels */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 1.2fr) minmax(400px, 2fr)', gap: '1.5rem', alignItems: 'start' }}>
+        <div className="grid-2">
           
-          {/* Live Queue */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.5rem' }}>
-               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success-green)', boxShadow: '0 0 10px var(--success-green)' }} />
-               <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Live Queue</p>
-             </div>
+          <div className="glass-panel flex-col gap-4">
+             <div className="section-tag">Live Queue</div>
              
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+             <div className="queue-list">
                <AnimatePresence>
-                 {queue.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', margin: '2rem 0' }}>Queue is empty.</div>}
+                 {queue.length === 0 && <div className="text-sm" style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>Queue is empty.</div>}
                  {queue.map((q, i) => {
                    const tag = getUrgencyTag(q.severity);
+                   const isSelected = selectedPatient?.id === q.id;
                    return (
                      <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
                         key={q.id || i}
-                        className="queue-row"
-                        style={{ 
-                          display: 'grid', gridTemplateColumns: '70px 1fr auto 40px', alignItems: 'center',
-                          padding: '1.2rem 14px',
-                          borderBottom: i !== queue.length -1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                          borderLeft: `4px solid ${tag.barColor}`,
-                          marginLeft: '-4px', background: 'var(--surf)', marginBottom: '8px', borderRadius: '0 8px 8px 0',
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+                        className={`queue-item ${q.severity >= 80 ? 'emergency' : ''}`}
+                        style={{ border: isSelected ? '1px solid var(--accent-primary)' : '' }}
+                        onClick={() => {
+                          setViewingPatient(q);
+                          setShowPatientModal(true);
                         }}
                      >
-                       <span className="monospace" style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>{q.token_number}</span>
-                       <div style={{ display: 'flex', flexDirection: 'column', paddingRight: '1rem' }}>
-                          <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '0.95rem' }}>{q.patient_name}</span>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{q.condition || 'Consultation'}</span>
+                       <div className="queue-item-left">
+                         <span className={`token-badge ${q.severity >= 80 ? 'emergency' : ''}`}>{q.token_number}</span>
+                         <div className="flex-col">
+                            <span className="text-base" style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)' }}>{q.patient_name}</span>
+                            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{q.condition || 'Consultation'}</span>
+                         </div>
                        </div>
-                       <div style={{ background: tag.bg, color: tag.color, padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px', marginRight: '1rem' }}>
-                          {tag.label}: {q.severity}
+                       
+                       <div className="flex-between gap-4">
+                         <span className={`priority-pill ${tag.class}`}>{tag.label}</span>
+                         <button
+                           title={isSelected ? "Selected - Click a bed to assign" : "Click to select patient"}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setSelectedPatient(isSelected ? null : q);
+                           }}
+                           className={isSelected ? 'btn-primary' : 'btn-secondary'}
+                           style={{ padding: '6px 12px', fontSize: 'var(--text-xs)' }}
+                         >
+                           {isSelected ? 'Selected' : 'Select'}
+                         </button>
                        </div>
-                       <button
-                         title="Mark as in progress"
-                         onClick={() => updateQueueStatus(q.id, q.status === 'waiting' ? 'in_progress' : 'completed')}
-                         style={{ background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.2)', borderRadius: '6px', color: '#0ea5e9', fontSize: '0.7rem', cursor: 'pointer', padding: '4px 6px' }}>
-                         {q.status === 'waiting' ? '▶' : '✓'}
-                       </button>
                      </motion.div>
                    )
                  })}
@@ -185,28 +227,40 @@ export default function StaffDashboard() {
              </div>
           </div>
 
-          {/* Bed Map */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-               <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bed Infrastructure Node</p>
-               <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '4px' }}>
-                  {['General', 'ICU', 'Paediatric'].map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab)} style={{
-                      padding: '6px 16px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: activeTab === tab ? 600 : 500,
-                      background: activeTab === tab ? 'rgba(14, 165, 233, 0.2)' : 'transparent',
-                      color: activeTab === tab ? '#0ea5e9' : 'var(--text-muted)',
-                      border: 'none', cursor: 'pointer', transition: 'all 0.2s'
-                    }}>
-                      {tab}
-                    </button>
-                  ))}
-               </div>
+          <div className="glass-panel flex-col gap-4">
+             <div className="flex-between">
+                <div className="section-tag mb-0">Bed Infrastructure Node</div>
+                <div style={{ display: 'flex', background: 'var(--bg-overlay)', borderRadius: '8px', padding: '4px' }}>
+                   {['General', 'ICU', 'Paediatric'].map(tab => (
+                     <button key={tab} onClick={() => setActiveTab(tab)} style={{
+                       padding: '6px 12px', borderRadius: '6px', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)',
+                       background: activeTab === tab ? 'var(--bg-elevated)' : 'transparent',
+                       color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)',
+                       border: activeTab === tab ? '1px solid var(--border-default)' : '1px solid transparent', cursor: 'pointer', transition: 'all 0.15s'
+                     }}>
+                       {tab}
+                     </button>
+                   ))}
+                </div>
              </div>
 
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+             {selectedPatient && (
+               <div style={{ background: 'rgba(45,126,248,0.1)', border: '1px solid rgba(45,126,248,0.3)', padding: '12px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                 <div>
+                   <span style={{ color: 'var(--accent-primary)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-sm)' }}>
+                     Assigning: {selectedPatient.token_number} - {selectedPatient.patient_name}
+                   </span>
+                   <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', marginTop: '2px' }}>
+                     Click an available bed to assign
+                   </p>
+                 </div>
+                 <button onClick={() => setSelectedPatient(null)} className="btn-ghost" style={{ padding: '4px 10px', fontSize: 'var(--text-xs)' }}>Cancel</button>
+               </div>
+             )}
+
+             <div className="bed-grid">
                <AnimatePresence mode="popLayout">
                  {filteredBeds.map((bed) => {
-                   const c = getBedColor(bed.status);
                    return (
                      <motion.div 
                        layout
@@ -214,56 +268,152 @@ export default function StaffDashboard() {
                        animate={{ opacity: 1, scale: 1 }}
                        exit={{ opacity: 0, scale: 0.8 }}
                        key={bed.id} 
+                       className={`bed-cell ${bed.status}`}
                        style={{
-                         padding: '1.2rem',
-                         background: 'var(--surf2)',
-                         border: `1px solid ${c.border}`,
-                         borderRadius: '12px',
-                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                         cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 15px rgba(0,0,0,0.25)'
+                         opacity: selectedPatient && bed.status !== 'available' ? 0.4 : 1,
+                         border: selectedPatient && bed.status === 'available' ? '1px solid var(--accent-primary)' : ''
                        }}
-                       onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'}
-                       onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
                        onClick={() => {
-                         const next = bed.status === 'available' ? 'occupied' : bed.status === 'occupied' ? 'cleaning' : 'available';
-                         updateBedStatus(bed.id, next);
+                         if (selectedPatient && bed.status === 'available') {
+                           setAssignmentBedId(bed.id);
+                           setShowAssignmentModal(true);
+                         } else if (!selectedPatient) {
+                           const next = bed.status === 'available' ? 'occupied' : bed.status === 'occupied' ? 'cleaning' : 'available';
+                           updateBedStatus(bed.id, next);
+                         }
                        }}
                      >
-                       <span className="monospace" style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>{bed.displayId}</span>
-                       <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: c.text }}>{bed.status}</span>
-                       {bed.patient && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px', textAlign: 'center' }}>{bed.patient}</span>}
+                       <span className="bed-id">{bed.displayId}</span>
+                       <span className="bed-status">{bed.status}</span>
+                       {bed.patient && <span className="bed-patient">{bed.patient}</span>}
                      </motion.div>
                    )
                  })}
                </AnimatePresence>
              </div>
 
-             {/* Legend */}
-             <div style={{ display: 'flex', gap: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem', flexWrap: 'wrap' }}>
-               {[
-                 { label: 'Available', dot: '#10b981' }, { label: 'Occupied', dot: '#ef4444' },
-                 { label: 'Cleaning', dot: '#eab308' }, { label: 'Maintenance', dot: '#94a3b8' }
-               ].map(l => (
-                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: l.dot }} />
-                   {l.label}
-                 </div>
-               ))}
-             </div>
-
           </div>
 
         </div>
       </div>
+      )}
 
-      <style dangerouslySetInnerHTML={{__html: `
-        .flash-red { animation: flashRedBorder 1.5s infinite alternate; }
-        @keyframes flashRedBorder {
-          0% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 rgba(239,68,68,0); }
-          100% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 20px rgba(239,68,68,0.4); }
-        }
-        .queue-row:hover { background: var(--surf2) !important; filter: brightness(1.1); }
-      `}} />
+      {activeView === 'resources' && <ResourceDashboard />}
+
+      {/* Patient Details Modal */}
+      <AnimatePresence>
+        {showPatientModal && viewingPatient && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowPatientModal(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="form-section-card flex-col"
+              style={{ maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '0', position: 'relative' }}
+            >
+              <div style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 10 }}>
+                <div className="flex-between">
+                  <div>
+                    <h2 className="text-xl" style={{ color: 'var(--text-primary)', marginBottom: '4px' }}>Patient Details</h2>
+                    <p className="text-sm font-mono" style={{ color: 'var(--accent-primary)' }}>Token: {viewingPatient.token_number || viewingPatient.token}</p>
+                  </div>
+                  <button onClick={() => setShowPatientModal(false)} className="btn-ghost" style={{ padding: '8px' }}><X size={20} /></button>
+                </div>
+              </div>
+
+              <div style={{ padding: 'var(--space-6)' }}>
+                <div className="mb-6">
+                  <span className={`priority-pill ${getUrgencyTag(viewingPatient.severity).class}`} style={{ fontSize: 'var(--text-sm)' }}>
+                    Severity: {viewingPatient.severity} ({getUrgencyTag(viewingPatient.severity).label})
+                  </span>
+                </div>
+
+                <div className="mb-6 p-6" style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+                  <h3 className="text-base mb-4" style={{ color: 'var(--text-primary)' }}>Personal Information</h3>
+                  <div className="grid-2">
+                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Name</span><div className="text-sm font-semibold">{viewingPatient.patient_name || viewingPatient.fullName || 'N/A'}</div></div>
+                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Age</span><div className="text-sm font-semibold">{viewingPatient.age || 'N/A'}</div></div>
+                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Gender</span><div className="text-sm font-semibold">{viewingPatient.gender || 'N/A'}</div></div>
+                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Phone</span><div className="text-sm font-semibold">{viewingPatient.phone || 'N/A'}</div></div>
+                  </div>
+                </div>
+
+                <div className="mb-6 p-6" style={{ background: 'rgba(239, 68, 68, 0.05)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                  <h3 className="text-base mb-4" style={{ color: 'var(--status-danger)' }}>Medical Information</h3>
+                  <div className="flex-col gap-4">
+                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Condition</span><div className="text-sm font-semibold">{viewingPatient.condition || viewingPatient.chiefComplaint || 'Not specified'}</div></div>
+                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Department</span><div className="text-sm font-semibold">{viewingPatient.department || 'General OPD'}</div></div>
+                  </div>
+                </div>
+
+                <div className="flex-between gap-4">
+                  <button onClick={() => { setSelectedPatient(viewingPatient); setShowPatientModal(false); }} className="btn-primary" style={{ flex: 1 }}>🛏️ Assign Bed</button>
+                  <button onClick={() => { setShowPatientModal(false); setShowRoomOnlyModal(true); }} className="btn-secondary" style={{ flex: 1 }}>📋 Assign Room</button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Assignment Modals would follow a similar pattern here, omitting for brevity as they just contain a select dropdown */}
+      {/* ... Room assignment modals functionality preserved but simplified ... */}
+      
+      <AnimatePresence>
+        {showAssignmentModal && selectedPatient && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             <motion.div className="form-section-card p-6" style={{ maxWidth: '500px', width: '100%' }}>
+                <h2 className="text-xl mb-2" style={{ color: 'var(--text-primary)' }}>Assign Patient to Bed & Room</h2>
+                <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Assigning to Bed {assignmentBedId}</p>
+                
+                <div className="form-group">
+                   <label className="form-label">Select Room (Optional)</label>
+                   <select className="form-select" value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)}>
+                      <option value="">No room (Bed only)</option>
+                      {rooms.filter(r => r.status === 'available').map(room => (
+                         <option key={room.id} value={room.id}>{room.name} ({room.category})</option>
+                      ))}
+                   </select>
+                </div>
+                
+                <div className="flex-between gap-4 mt-6">
+                   <button onClick={() => assignPatientToBed(assignmentBedId, selectedPatient)} className="btn-primary" style={{ flex: 1 }}>Confirm</button>
+                   <button onClick={() => setShowAssignmentModal(false)} className="btn-ghost" style={{ flex: 1 }}>Cancel</button>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      <AnimatePresence>
+        {showRoomOnlyModal && viewingPatient && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             <motion.div className="form-section-card p-6" style={{ maxWidth: '500px', width: '100%' }}>
+                <h2 className="text-xl mb-2" style={{ color: 'var(--text-primary)' }}>Assign to Room Only</h2>
+                <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Assigning {viewingPatient.patient_name}</p>
+                
+                <div className="form-group">
+                   <label className="form-label">Select Room</label>
+                   <select className="form-select" value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)}>
+                      <option value="">-- Select a room --</option>
+                      {rooms.filter(r => r.status === 'available').map(room => (
+                         <option key={room.id} value={room.id}>{room.name} ({room.category})</option>
+                      ))}
+                   </select>
+                </div>
+                
+                <div className="flex-between gap-4 mt-6">
+                   <button onClick={() => selectedRoom && assignPatientToRoomOnly(selectedRoom, viewingPatient)} disabled={!selectedRoom} className={selectedRoom ? 'btn-primary' : 'btn-secondary'} style={{ flex: 1 }}>Confirm</button>
+                   <button onClick={() => setShowRoomOnlyModal(false)} className="btn-ghost" style={{ flex: 1 }}>Cancel</button>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
     </div>
   );
 }
