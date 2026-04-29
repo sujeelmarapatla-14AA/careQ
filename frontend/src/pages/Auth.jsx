@@ -9,6 +9,8 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState('');
   
   // Admin 2FA State
   const [requires2FA, setRequires2FA] = useState(false);
@@ -40,11 +42,41 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true); setError('');
 
-    // Demo credential bypass
-    if (activeTab === 'patient' && email === 'public@careq.com' && password === 'public123') {
+    // Public Portal Logic (LocalStorage)
+    if (activeTab === 'patient') {
+      const dbKey = 'careq_users_db';
+      let users = {};
+      try { users = JSON.parse(localStorage.getItem(dbKey)) || {}; } catch { users = {}; }
+
+      if (isSignUp) {
+        if (users[email]) {
+          setError('Account already exists.');
+          setLoading(false);
+          return;
+        }
+        users[email] = { email, password, name, createdAt: new Date().toISOString() };
+        localStorage.setItem(dbKey, JSON.stringify(users));
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+          setIsSignUp(false);
+        }, 1000);
         setLoading(false);
-        return completeLogin({ success: true, token: 'demo-public-token', username: 'Public User', role: 'patient' });
+        return;
+      } else {
+        const user = users[email];
+        if (user && user.password === password) {
+          setLoading(false);
+          return completeLogin({ success: true, token: 'public-token-' + Date.now(), username: user.name || email.split('@')[0], role: 'patient' });
+        } else {
+          setError('Invalid credentials.');
+          setLoading(false);
+          return;
+        }
+      }
     }
+
+    // Demo credential bypass for staff/admin
     if (activeTab === 'staff' && email === 'staff@careq.com' && password === 'staff123') {
         setLoading(false);
         return completeLogin({ success: true, token: 'demo-staff-token', username: 'Staff Member', role: 'staff' });
@@ -138,10 +170,10 @@ export default function Auth() {
              </motion.div>
           </div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.5px' }}>
-            {requires2FA ? 'Confirm Identity' : activeTab === 'patient' ? 'Welcome to CareQ' : activeTab === 'staff' ? 'Staff Command Matrix' : 'System Administration'}
+            {requires2FA ? 'Confirm Identity' : activeTab === 'patient' ? (isSignUp ? 'Create Public Account' : 'Welcome to CareQ') : activeTab === 'staff' ? 'Staff Command Matrix' : 'System Administration'}
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            {requires2FA ? 'Enter your 6-digit TOTP code.' : activeTab === 'patient' ? 'Quickly verify your identity to join the grid.' : 'Official hospital credentials required.'}
+            {requires2FA ? 'Enter your 6-digit TOTP code.' : activeTab === 'patient' ? (isSignUp ? 'Register to access your health grid.' : 'Sign in to access your health grid.') : 'Official hospital credentials required.'}
           </p>
         </div>
 
@@ -162,17 +194,16 @@ export default function Auth() {
               
               {activeTab === 'patient' && (
                 <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '10px' }}>
-                   <div style={{ padding: '8px 12px', background: 'rgba(16,185,129,0.1)', color: 'var(--status-success)', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid rgba(16,185,129,0.3)' }}>Demo: public@careq.com / public123</div>
+                   <button type="button" onClick={() => setIsSignUp(false)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid ' + (!isSignUp ? 'var(--status-success)' : 'var(--border-default)'), background: !isSignUp ? 'rgba(16,185,129,0.1)' : 'transparent', color: !isSignUp ? 'var(--status-success)' : 'var(--text-secondary)', cursor: 'pointer', transition: '0.3s' }}>Sign In</button>
+                   <button type="button" onClick={() => setIsSignUp(true)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid ' + (isSignUp ? 'var(--status-success)' : 'var(--border-default)'), background: isSignUp ? 'rgba(16,185,129,0.1)' : 'transparent', color: isSignUp ? 'var(--status-success)' : 'var(--text-secondary)', cursor: 'pointer', transition: '0.3s' }}>Create Account</button>
                 </div>
               )}
-              {activeTab === 'staff' && (
-                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '10px' }}>
-                   <div style={{ padding: '8px 12px', background: 'rgba(14,165,233,0.1)', color: 'var(--accent-primary)', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid rgba(14,165,233,0.3)' }}>Demo: staff@careq.com / staff123</div>
-                </div>
-              )}
-              {activeTab === 'admin' && (
-                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '10px' }}>
-                   <div style={{ padding: '8px 12px', background: 'rgba(139,92,246,0.1)', color: '#a78bfa', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid rgba(139,92,246,0.3)' }}>Demo: admin@careq.com / admin123</div>
+              
+              {activeTab === 'patient' && isSignUp && (
+                <div className="floating-input-group">
+                  <User className="input-ico" size={18} />
+                  <input type="text" id="fname" className="float-input" required value={name} onChange={(e) => setName(e.target.value)} />
+                  <label htmlFor="fname" className="float-label">Full Name (Optional)</label>
                 </div>
               )}
 
@@ -192,7 +223,7 @@ export default function Auth() {
               </div>
               
               <motion.button type="submit" className="auth-submit-btn" disabled={loading || success} style={{ background: activeTab==='admin' ? 'linear-gradient(135deg, #8b5cf6, #c084fc)' : 'linear-gradient(135deg, var(--accent-primary), #818cf8)' }}>
-                {loading ? <Loader2 className="spin-ico" size={20} /> : success ? <Check size={24} strokeWidth={3}/> : 'Sign In'}
+                {loading ? <Loader2 className="spin-ico" size={20} /> : success ? <Check size={24} strokeWidth={3}/> : (activeTab === 'patient' && isSignUp ? 'Create Account' : 'Sign In')}
               </motion.button>
 
             </motion.form>
