@@ -66,13 +66,16 @@ export default function PatientWizard({ onRegistered }) {
     try {
       const res = await fetch(BASE_URL + '/api/queue/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('careq_token') || 'bypass'}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
            patient_name: data.fullName, 
            condition: data.complaint, 
            severity: isEmergency ? data.severity : 30,
            department: data.department,
-           visitType: data.visitType
+           visitType: data.visitType,
+           age: data.age,
+           gender: data.gender,
+           phone: data.phone
         }),
       });
       const resData = await res.json();

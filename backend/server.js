@@ -351,11 +351,14 @@ const authenticate = (req, res, next) => {
   const header = req.headers['authorization'];
   if (!header) return res.status(401).json({ error: 'No token provided' });
   const token = header.split(' ')[1];
-  if (token === 'bypass') return next();
+  if (!token || token === 'bypass' || token === '') return next(); // allow bypass and empty
   try {
     req.user = jwt.verify(token, JWT_SECRET); next();
   } catch { return res.status(401).json({ error: 'Invalid token' }); }
 };
+
+// Public middleware — no auth required (for patient-facing endpoints)
+const publicRoute = (req, res, next) => next();
 
 // ==========================================
 // 3. QUEUE & PATIENT DATA FLOWS
@@ -393,7 +396,7 @@ function updateAnalyticStats(patient) {
   patientStore.stats.waitingCount++;
 }
 
-app.post('/api/queue/register', authenticate, async (req, res) => {
+app.post('/api/queue/register', publicRoute, async (req, res) => {
   checkMidnightReset();
   
   let { patient_name, severity, condition, department, visitType, age, gender, phone } = req.body;
@@ -555,7 +558,7 @@ const getAllActiveQueues = () => {
 
 app.get('/api/queue', (req, res) => { res.json(getAllActiveQueues()); });
 
-app.get('/api/queue/status/:tokenNumber', authenticate, (req, res) => {
+app.get('/api/queue/status/:tokenNumber', publicRoute, (req, res) => {
     const p = patientStore.patients.find(x => x.token === req.params.tokenNumber);
     if (!p) return res.status(404).json({ error: 'Token not found' });
     res.json({ ...p, queueLength: Object.values(patientStore.queue).reduce((acc,q)=>acc+q.length,0) });
@@ -630,7 +633,7 @@ app.patch('/api/queue/:id', authenticate, (req, res) => {
     res.json({ success: true });
 });
 
-app.get('/api/patient/:token', authenticate, (req, res) => {
+app.get('/api/patient/:token', publicRoute, (req, res) => {
   const p = patientStore.patients.find(x => x.token === req.params.token);
   if (!p) return res.status(404).json({ error: 'Token not found' });
   

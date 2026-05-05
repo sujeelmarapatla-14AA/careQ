@@ -13,10 +13,7 @@ export default function TokenCard({ storedToken, onLeave }) {
   const fetchStatus = async (showToast = false) => {
     try {
       const res = await fetch(`${BASE_URL}/api/patient/${storedToken}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('careq_token') || 'bypass'}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
       const resData = await res.json();
       if (resData.error) setError(resData.error);
