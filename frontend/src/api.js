@@ -1,5 +1,8 @@
-// Central API config — reads from env var in production, falls back to localhost in dev
-export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Central API config
+// VITE_API_URL is set in Vercel dashboard for production.
+// Falls back to Render URL, then localhost for dev.
+export const BASE_URL = import.meta.env.VITE_API_URL 
+  || 'https://careq.onrender.com';
 
 export const authHeaders = () => ({
   'Content-Type': 'application/json',
