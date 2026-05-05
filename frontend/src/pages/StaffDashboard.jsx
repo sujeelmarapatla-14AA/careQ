@@ -30,8 +30,17 @@ export default function StaffDashboard() {
     apiFetch('/api/stats').then(data => { if (data && !data.error) setMetrics(data); });
 
     socketRef.current = io(BASE_URL);
+
+    // Request fresh data from DB immediately on connect
+    socketRef.current.on('connect', () => {
+      socketRef.current.emit('get:patients');
+      socketRef.current.emit('get:beds');
+    });
+
     socketRef.current.on('queueUpdate', (data) => { if (Array.isArray(data)) { setQueue(data); fetchStats(); } });
+    socketRef.current.on('patients:update', (data) => { if (Array.isArray(data)) { setQueue(data.filter(p => p.status !== 'Completed')); fetchStats(); } });
     socketRef.current.on('bedsUpdate', (data) => { if (Array.isArray(data)) { setBeds(normalizeBeds(data)); fetchStats(); } });
+    socketRef.current.on('beds:update', (data) => { if (Array.isArray(data)) { setBeds(normalizeBeds(data)); fetchStats(); } });
     socketRef.current.on('resource:updated', () => { apiFetch('/api/rooms').then(data => { if (Array.isArray(data)) setRooms(data); }); });
     
     const fetchStats = () => apiFetch('/api/stats').then(data => { if(data && !data.error) setMetrics(prev => ({...prev, ...data}))});

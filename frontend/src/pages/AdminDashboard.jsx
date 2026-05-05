@@ -65,6 +65,9 @@ const AdminDashboard = () => {
       socket = io(BASE_URL, { timeout: 5000, reconnectionAttempts: 3 });
 
       socket.emit('join:admin');
+      // Request fresh DB data immediately
+      socket.emit('get:patients');
+      socket.emit('get:beds');
 
       socket.on('connect', () => {
         setBackendOnline(true);
