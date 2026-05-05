@@ -79,20 +79,27 @@ if (!JWT_SECRET) {
 // ==========================================
 // 1. MASTER DATA STORE ARCHITECTURE
 // ==========================================
-// A. PATIENT DATA STORE (stats + token counter kept in-memory, synced from DB on startup)
+
+// Flag — set to true only after successful MongoDB connection
+let mongoConnected = false;
+
+// A. IN-MEMORY FALLBACK STORE (used when MongoDB is not connected)
 const patientStore = {
+  patients: [],
+  queue: {
+    'General OPD':  [], 'Emergency':    [], 'Cardiology':   [],
+    'Orthopedics':  [], 'Neurology':    [], 'Pediatrics':   [],
+    'Gynecology':   [], 'ENT':          [], 'Dermatology':  [],
+    'Ophthalmology':[], 'Psychiatry':   [], 'Dental':       [],
+    'Radiology':    [], 'Laboratory':   []
+  },
   tokenCounter: 0,
   tokenPrefix: 'A',
   lastReset: new Date().toDateString(),
   stats: {
-    totalToday: 0,
-    patientsToday: 0,
-    dischargedToday: 0,
-    emergencyToday: 0,
-    avgWaitTime: 0,
-    completedToday: 0,
-    inProgressCount: 0,
-    waitingCount: 0
+    totalToday: 0, patientsToday: 0, dischargedToday: 0,
+    emergencyToday: 0, avgWaitTime: 0, completedToday: 0,
+    inProgressCount: 0, waitingCount: 0
   }
 };
 
@@ -123,7 +130,33 @@ const checkMidnightReset = async () => {
   }
 };
 
-// B. STAFF DATA STORE
+// B. IN-MEMORY BED STORE (fallback when MongoDB not connected)
+function generateBedsMemory(prefix, total, counts, wardName, category = 'general') {
+  const beds = []; let i = 1;
+  const pad = n => String(n).padStart(2,'0');
+  for (let a = 0; a < counts.available; a++) {
+    beds.push({ id:`${prefix}-${pad(i)}`, bedId:`${prefix}-${pad(i)}`, ward:wardName, ward_name:wardName, category, status:'available', patientToken:null, patientName:null, patientAge:null, patientGender:null, patientPhone:null, department:null, assignedDoctor:null, assignedBy:null, assignedAt:null, expectedDischarge:null, admissionNotes:null, reservedUntil:null, reservedBy:null, reservedReason:null, history:[], notes:[], statusUpdatedAt:new Date(), statusUpdatedBy:'System' }); i++;
+  }
+  for (let o = 0; o < counts.occupied; o++) {
+    beds.push({ id:`${prefix}-${pad(i)}`, bedId:`${prefix}-${pad(i)}`, ward:wardName, ward_name:wardName, category, status:'occupied', patientToken:`DEMO-${String(o+1).padStart(3,'0')}`, patientName:`Patient ${o+1}`, patientAge:25+Math.floor(Math.random()*50), patientGender:Math.random()>0.5?'Male':'Female', patientPhone:null, department:wardName.includes('ICU')?'Critical Care':'General', assignedDoctor:'Dr. Suresh Reddy', assignedBy:'Nurse Lakshmi', assignedAt:new Date(Date.now()-Math.random()*86400000*2), expectedDischarge:new Date(Date.now()+Math.random()*86400000*3), admissionNotes:'Under observation', reservedUntil:null, reservedBy:null, reservedReason:null, history:[{action:'assigned',patientToken:`DEMO-${String(o+1).padStart(3,'0')}`,patientName:`Patient ${o+1}`,by:'Nurse Lakshmi',at:new Date(),notes:'Initial admission'}], notes:[], statusUpdatedAt:new Date(), statusUpdatedBy:'Staff' }); i++;
+  }
+  for (let m = 0; m < counts.maintenance; m++) {
+    beds.push({ id:`${prefix}-${pad(i)}`, bedId:`${prefix}-${pad(i)}`, ward:wardName, ward_name:wardName, category, status:'maintenance', patientToken:null, patientName:null, patientAge:null, patientGender:null, patientPhone:null, department:null, assignedDoctor:null, assignedBy:null, assignedAt:null, expectedDischarge:null, admissionNotes:null, reservedUntil:null, reservedBy:null, reservedReason:null, history:[{action:'maintenance',by:'Admin',at:new Date(),notes:'Scheduled maintenance'}], notes:[], statusUpdatedAt:new Date(), statusUpdatedBy:'Admin' }); i++;
+  }
+  return beds;
+}
+
+const bedStore = {
+  wards: {
+    'General Ward (Male)':  { beds: generateBedsMemory('GM',  40, {available:12,occupied:26,maintenance:2},  'General Ward (Male)',  'general')   },
+    'ICU':                  { beds: generateBedsMemory('ICU', 20, {available:4, occupied:15,maintenance:1},  'ICU',                  'icu')        },
+    'Emergency / Casualty': { beds: generateBedsMemory('EMG', 25, {available:6, occupied:19,maintenance:0},  'Emergency / Casualty', 'emergency')  },
+    'Pediatrics':           { beds: generateBedsMemory('PED', 15, {available:5, occupied:9, maintenance:1},  'Pediatrics',           'pediatric')  },
+    'Maternity':            { beds: generateBedsMemory('MAT', 20, {available:8, occupied:11,maintenance:1},  'Maternity',            'maternity')  },
+  }
+};
+
+// C. STAFF DATA STORE
 const _staffPwd     = process.env.STAFF_PASSWORD;
 const _adminPwd     = process.env.ADMIN_PASSWORD;
 const _demoStaffPwd = process.env.DEMO_STAFF_PASSWORD;
@@ -220,28 +253,60 @@ function updateAnalyticStats(patient) {
   patientStore.stats.waitingCount++;
 }
 
-// DB-backed helpers
+// ==========================================
+// DB-BACKED HELPERS (fall back to in-memory when MongoDB not connected)
+// ==========================================
+
 const getAllActiveQueues = async () => {
-  try {
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    return await Patient.find({ registeredAt: { $gte: todayStart }, status: { $ne: 'Completed' } }).sort({ triageScore: -1 });
-  } catch (e) { return []; }
+  if (mongoConnected) {
+    try {
+      const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      return await Patient.find({ registeredAt: { $gte: todayStart }, status: { $ne: 'Completed' } }).sort({ triageScore: -1 });
+    } catch(e) { /* fall through */ }
+  }
+  // In-memory fallback
+  const arr = [];
+  Object.values(patientStore.queue).forEach(q => q.forEach(p => { if(p.status !== 'Completed') arr.push({...p}); }));
+  return arr.sort((a,b) => b.triageScore - a.triageScore);
 };
 
 const getAllBeds = async () => {
-  try {
-    return await Bed.find().sort({ ward: 1, bedId: 1 });
-  } catch (e) { return []; }
+  if (mongoConnected) {
+    try { return await Bed.find().sort({ ward: 1, bedId: 1 }); } catch(e) { /* fall through */ }
+  }
+  // In-memory fallback
+  let beds = [];
+  Object.values(bedStore.wards).forEach(w => beds = beds.concat(w.beds));
+  return beds;
 };
 
 const findBedById = async (bedId) => {
-  const orClauses = [{ bedId }];
-  if (mongoose.Types.ObjectId.isValid(bedId)) orClauses.push({ _id: bedId });
-  const bed = await Bed.findOne({ $or: orClauses }).catch(() => null);
-  return { bed, ward: bed ? bed.ward : null };
+  if (mongoConnected) {
+    try {
+      const orClauses = [{ bedId }];
+      if (mongoose.Types.ObjectId.isValid(bedId)) orClauses.push({ _id: bedId });
+      const bed = await Bed.findOne({ $or: orClauses });
+      return { bed, ward: bed ? bed.ward : null };
+    } catch(e) { /* fall through */ }
+  }
+  // In-memory fallback
+  let foundBed = null, foundWard = null;
+  Object.entries(bedStore.wards).forEach(([wardName, w]) => {
+    const b = w.beds.find(x => x.bedId === bedId || x.id === bedId);
+    if (b) { foundBed = b; foundWard = wardName; }
+  });
+  return { bed: foundBed, ward: foundWard };
 };
 
-const findPatientBed = async (patientToken) => Bed.findOne({ patientToken });
+const findPatientBed = async (patientToken) => {
+  if (mongoConnected) {
+    try { return await Bed.findOne({ patientToken }); } catch(e) { /* fall through */ }
+  }
+  // In-memory fallback
+  let found = null;
+  Object.values(bedStore.wards).forEach(w => { const b = w.beds.find(x => x.patientToken === patientToken); if(b) found = b; });
+  return found;
+};
 
 const computeBedSummaryFromArray = (allBeds) => ({
   total: allBeds.length,
@@ -285,32 +350,40 @@ app.post('/api/queue/register', publicRoute, async (req, res) => {
     'Gynecology','ENT','Dermatology','Ophthalmology','Psychiatry','Dental','Radiology','Laboratory'];
   const safeDept = department && VALID_DEPTS.includes(department) ? department : 'General OPD';
 
-  // Get token counter from DB (or in-memory fallback)
+  // Get token counter — DB if connected, in-memory otherwise
   let counter = patientStore.tokenCounter;
   let prefix  = patientStore.tokenPrefix;
-  try {
-    const cfg = await HospitalConfig.findOneAndUpdate(
-      { hospitalId: 'HOSP-ARN-001' },
-      { $inc: { tokenCounter: 1 } },
-      { new: true, upsert: true }
-    );
-    counter = cfg.tokenCounter;
-    prefix  = cfg.tokenPrefix || 'A';
-    patientStore.tokenCounter = counter;
-    patientStore.tokenPrefix  = prefix;
-  } catch (e) {
+  if (mongoConnected) {
+    try {
+      const cfg = await HospitalConfig.findOneAndUpdate(
+        { hospitalId: 'HOSP-ARN-001' },
+        { $inc: { tokenCounter: 1 } },
+        { returnDocument: 'after', upsert: true }
+      );
+      counter = cfg.tokenCounter;
+      prefix  = cfg.tokenPrefix || 'A';
+      patientStore.tokenCounter = counter;
+      patientStore.tokenPrefix  = prefix;
+    } catch (e) {
+      patientStore.tokenCounter++;
+      counter = patientStore.tokenCounter;
+    }
+  } else {
     patientStore.tokenCounter++;
     counter = patientStore.tokenCounter;
   }
 
   const tkn = `${prefix}-${String(counter).padStart(3, '0')}`;
 
-  // Count today's patients in this dept for queue position
+  // Queue position
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   let pos = 1;
-  try {
-    pos = (await Patient.countDocuments({ registeredAt: { $gte: todayStart }, department: safeDept })) + 1;
-  } catch (e) { pos = counter; }
+  if (mongoConnected) {
+    try { pos = (await Patient.countDocuments({ registeredAt: { $gte: todayStart }, department: safeDept })) + 1; }
+    catch (e) { pos = (patientStore.queue[safeDept] || []).length + 1; }
+  } else {
+    pos = (patientStore.queue[safeDept] || []).length + 1;
+  }
 
   const patientData = {
     token:             tkn,
@@ -336,12 +409,15 @@ app.post('/api/queue/register', publicRoute, async (req, res) => {
     priority:          parseInt(severity) > 80 || visitType === 'Emergency' ? 'Emergency' : 'Normal'
   };
 
-  // Save to MongoDB
-  try {
-    await Patient.create(patientData);
-  } catch (e) {
-    console.error('MongoDB patient save failed:', e.message);
+  // Save to MongoDB if connected, otherwise save to in-memory store
+  if (mongoConnected) {
+    try { await Patient.create(patientData); }
+    catch (e) { console.error('MongoDB patient save failed:', e.message); }
   }
+  // Always save to in-memory (source of truth when no DB)
+  patientStore.patients.push(patientData);
+  if (patientData.priority === 'Emergency') patientStore.queue[safeDept].unshift(patientData);
+  else patientStore.queue[safeDept].push(patientData);
 
   updateAnalyticStats(patientData);
 
@@ -482,7 +558,9 @@ app.get('/api/queue', async (req, res) => {
 });
 
 app.get('/api/queue/status/:tokenNumber', publicRoute, async (req, res) => {
-  const p = await Patient.findOne({ token: req.params.tokenNumber }).catch(() => null);
+  let p = null;
+  if (mongoConnected) p = await Patient.findOne({ token: req.params.tokenNumber }).catch(() => null);
+  if (!p) p = patientStore.patients.find(x => x.token === req.params.tokenNumber);
   if (!p) return res.status(404).json({ error: 'Token not found' });
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const queueLength = await Patient.countDocuments({ registeredAt: { $gte: todayStart }, status: { $ne: 'Completed' } }).catch(() => 0);
@@ -491,13 +569,22 @@ app.get('/api/queue/status/:tokenNumber', publicRoute, async (req, res) => {
 
 app.patch('/api/queue/:id', authenticate, async (req, res) => {
   const newStatus = req.body.status;
-  const orClauses = [{ token: req.params.id }];
-  if (mongoose.Types.ObjectId.isValid(req.params.id)) orClauses.push({ _id: req.params.id });
-  const p = await Patient.findOneAndUpdate(
-    { $or: orClauses },
-    newStatus ? { status: newStatus } : {},
-    { new: true }
-  ).catch(() => null);
+  let p = null;
+
+  // Try MongoDB first, fall back to in-memory
+  if (mongoConnected) {
+    const orClauses = [{ token: req.params.id }];
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) orClauses.push({ _id: req.params.id });
+    p = await Patient.findOneAndUpdate(
+      { $or: orClauses },
+      newStatus ? { status: newStatus } : {},
+      { returnDocument: 'after' }
+    ).catch(() => null);
+  }
+  // In-memory fallback (also update in-memory even if DB succeeded)
+  const memP = patientStore.patients.find(x => x.id === req.params.id || x.token === req.params.id);
+  if (memP && newStatus) memP.status = newStatus;
+  if (!p) p = memP;
 
   if (p) {
     const oldStatus = req.body.oldStatus || 'Waiting';
@@ -532,7 +619,9 @@ app.patch('/api/queue/:id', authenticate, async (req, res) => {
 
     const allActiveQueues = await getAllActiveQueues();
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const allPatients = await Patient.find({ registeredAt: { $gte: todayStart } }).sort({ registeredAt: 1 }).catch(() => []);
+    let allPatients = [];
+    if (mongoConnected) allPatients = await Patient.find({ registeredAt: { $gte: todayStart } }).sort({ registeredAt: 1 }).catch(() => []);
+    if (!allPatients.length) allPatients = patientStore.patients;
 
     io.emit('queueUpdate', allActiveQueues);
     io.emit('patients:update', allPatients);
@@ -557,7 +646,9 @@ app.patch('/api/queue/:id', authenticate, async (req, res) => {
 });
 
 app.get('/api/patient/:token', publicRoute, async (req, res) => {
-  const p = await Patient.findOne({ token: req.params.token }).catch(() => null);
+  let p = null;
+  if (mongoConnected) p = await Patient.findOne({ token: req.params.token }).catch(() => null);
+  if (!p) p = patientStore.patients.find(x => x.token === req.params.token);
   if (!p) return res.status(404).json({ error: 'Token not found' });
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const deptCount = await Patient.countDocuments({ registeredAt: { $gte: todayStart }, department: p.department, status: { $ne: 'Completed' } }).catch(() => 0);
@@ -626,7 +717,9 @@ app.patch('/api/beds/:id', authenticate, async (req, res) => {
 // ==========================================
 app.get('/api/dashboard/metrics', authenticate, async (req, res) => {
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayPatients = await Patient.find({ registeredAt: { $gte: todayStart } }).catch(() => []);
+  let todayPatients = [];
+  if (mongoConnected) todayPatients = await Patient.find({ registeredAt: { $gte: todayStart } }).catch(() => []);
+  if (!todayPatients.length) todayPatients = patientStore.patients.filter(p => new Date(p.registeredAt) >= todayStart);
   const allBeds = await getAllBeds();
 
   const totalBeds    = allBeds.length;
@@ -684,7 +777,9 @@ app.get('/api/dashboard/metrics', authenticate, async (req, res) => {
 
 app.get('/api/stats', async (req, res) => {
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const todayPatients = await Patient.find({ registeredAt: { $gte: todayStart } }).catch(() => []);
+  let todayPatients = [];
+  if (mongoConnected) todayPatients = await Patient.find({ registeredAt: { $gte: todayStart } }).catch(() => []);
+  if (!todayPatients.length) todayPatients = patientStore.patients.filter(p => new Date(p.registeredAt) >= todayStart);
   const allBeds = await getAllBeds();
   const availableBeds = allBeds.filter(b => b.status === 'available').length;
 
@@ -740,10 +835,12 @@ io.on('connection', async (socket) => {
     socket.emit('bedsUpdate', []);
   }
 
-  // NEW: get:patients event
+  // get:patients — send fresh data from DB or in-memory
   socket.on('get:patients', async () => {
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const patients = await Patient.find({ registeredAt: { $gte: todayStart } }).sort({ registeredAt: 1 }).catch(() => []);
+    let patients = [];
+    if (mongoConnected) patients = await Patient.find({ registeredAt: { $gte: todayStart } }).sort({ registeredAt: 1 }).catch(() => []);
+    if (!patients.length) patients = patientStore.patients;
     socket.emit('patients:update', patients);
   });
 
@@ -1196,7 +1293,8 @@ server.listen(PORT, async () => {
   console.log(`Phase 2 Resource Management API loaded`);
 
   // Connect to MongoDB first
-  const mongoConnected = await connectDB();
+  const dbConnected = await connectDB();
+  if (dbConnected) mongoConnected = true;
 
   if (mongoConnected) {
     console.log('MongoDB connected -- loading today\'s data...');
