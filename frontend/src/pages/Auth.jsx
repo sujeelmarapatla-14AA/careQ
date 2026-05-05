@@ -76,18 +76,8 @@ export default function Auth() {
       }
     }
 
-    // Demo credential bypass for staff/admin
-    if (activeTab === 'staff' && email === 'staff@careq.com' && password === 'staff123') {
-        setLoading(false);
-        return completeLogin({ success: true, token: 'demo-staff-token', username: 'Staff Member', role: 'staff' });
-    }
-    if (activeTab === 'admin' && email === 'admin@careq.com' && password === 'admin123') {
-        setLoading(false);
-        return completeLogin({ success: true, token: 'demo-admin-token', username: 'Administrator', role: 'admin' });
-    }
-
-    // Original backend ping if bypass not met
-    let endpoint = '/api/auth/patient/login'; // we might not have this, demo used instead ideally
+    // Staff/Admin: always go through the real backend — no client-side bypass
+    let endpoint = '/api/auth/patient/login';
     if (activeTab === 'staff') endpoint = '/api/auth/staff/login';
     if (activeTab === 'admin') endpoint = '/api/auth/admin/login';
     
@@ -109,7 +99,7 @@ export default function Auth() {
           completeLogin(data);
         }
       } else { setError(data.error || 'Access Denied / Invalid Credentials.'); }
-    } catch { setError('Network failure. (Try demo credentials: admin@careq.com / admin123)'); }
+    } catch { setError('Network failure. Please check your connection and try again.'); }
     setLoading(false);
   };
 

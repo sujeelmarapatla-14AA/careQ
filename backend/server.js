@@ -13,16 +13,63 @@ const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } }); 
 
-app.use(cors());
+// ── CORS: allow localhost in dev, Vercel domain in production ──────────────
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+];
+
+// Add any extra origins from env (comma-separated)
+// e.g. FRONTEND_URL=https://careq.vercel.app,https://careq-git-main.vercel.app
+if (process.env.FRONTEND_URL && process.env.FRONTEND_URL !== '*') {
+  process.env.FRONTEND_URL.split(',').forEach(u => allowedOrigins.push(u.trim()));
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || process.env.FRONTEND_URL === '*') {
+      return callback(null, true);
+    }
+    // Allow any *.vercel.app subdomain automatically
+    if (/\.vercel\.app$/.test(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // pre-flight for all routes
+
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || process.env.FRONTEND_URL === '*') return callback(null, true);
+      if (/\.vercel\.app$/.test(origin)) return callback(null, true);
+      callback(new Error(`Socket CORS blocked: ${origin}`));
+    },
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
 app.use(express.json());
 const upload = multer({ storage: multer.memoryStorage() });
 
 const frontendDistPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(frontendDistPath));
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-development-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('❌ FATAL: JWT_SECRET environment variable is not set. Server cannot start securely.');
+  process.exit(1);
+}
 
 // ==========================================
 // 1. MASTER DATA STORE ARCHITECTURE
@@ -79,12 +126,21 @@ const checkMidnightReset = () => {
 };
 
 // B. STAFF DATA STORE
+// Passwords come from env vars. In production, STAFF_PASSWORD and ADMIN_PASSWORD must be set.
+const _staffPwd   = process.env.STAFF_PASSWORD;
+const _adminPwd   = process.env.ADMIN_PASSWORD;
+const _demoStaffPwd = process.env.DEMO_STAFF_PASSWORD;
+
+if (!_staffPwd || !_adminPwd || !_demoStaffPwd) {
+  console.warn('⚠️  WARNING: STAFF_PASSWORD / ADMIN_PASSWORD / DEMO_STAFF_PASSWORD not set in env. Using insecure defaults — DO NOT use in production.');
+}
+
 const staffStore = {
   accounts: [
-    { id: 'STF001', name: 'Dr. Suresh Reddy', email: 'suresh@arundati.com', password: bcrypt.hashSync('staff123', 8), role: 'Doctor' },
-    { id: 'STF002', name: 'Nurse Lakshmi', email: 'lakshmi@arundati.com', password: bcrypt.hashSync('staff123', 8), role: 'Nurse' },
+    { id: 'STF001', name: 'Dr. Suresh Reddy', email: 'suresh@arundati.com', password: bcrypt.hashSync(_staffPwd || 'staff123', 8), role: 'Doctor' },
+    { id: 'STF002', name: 'Nurse Lakshmi', email: 'lakshmi@arundati.com', password: bcrypt.hashSync(_staffPwd || 'staff123', 8), role: 'Nurse' },
     // Public/Demo
-    { id: 'STF999', name: 'Demo Staff', email: 'staff@careq.com', password: bcrypt.hashSync('staff123', 8), role: 'Doctor' }
+    { id: 'STF999', name: 'Demo Staff', email: process.env.DEMO_STAFF_EMAIL || 'staff@careq.com', password: bcrypt.hashSync(_demoStaffPwd || 'staff123', 8), role: 'Doctor' }
   ],
   activeSessions: [],
   dailyStats: {},
@@ -251,7 +307,7 @@ const adminStore = {
     logo: null
   },
   accounts: [
-    { id: 'ADM001', name: 'Admin User', email: 'admin@careq.com', password: bcrypt.hashSync('admin123', 8), role: 'Super Admin' }
+    { id: 'ADM001', name: 'Admin User', email: process.env.ADMIN_EMAIL || 'admin@careq.com', password: bcrypt.hashSync(_adminPwd || 'admin123', 8), role: 'Super Admin' }
   ],
   analytics: {
     hourlyPatients: new Array(24).fill(0), dailyPatients: [], deptLoad: {},

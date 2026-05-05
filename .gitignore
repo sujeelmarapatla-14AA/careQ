@@ -51,8 +51,22 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
+# dotenv environment variables file — NEVER commit these
 .env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+.env.development.local
+frontend/.env
+backend/.env
+# Allow example files (no real secrets)
+!.env.example
+!frontend/.env.example
+!backend/.env.example
+
+# Credentials file — contains real passwords, never commit
+CREDENTIALS.md
 
 # next.js build output
 .next

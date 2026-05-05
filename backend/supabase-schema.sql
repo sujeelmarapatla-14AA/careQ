@@ -1,7 +1,7 @@
 -- ============================================================
 -- CareQ Supabase Schema
--- Run this in Supabase SQL Editor:
--- https://app.supabase.com/project/qrcnpaikpzrcabdnrydu/sql
+-- Run this in your Supabase SQL Editor:
+-- https://app.supabase.com/project/YOUR_PROJECT_REF/sql
 -- ============================================================
 
 -- PATIENTS table

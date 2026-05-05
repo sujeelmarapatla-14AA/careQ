@@ -14,7 +14,7 @@ export default function TokenCard({ storedToken, onLeave }) {
     try {
       const res = await fetch(`${BASE_URL}/api/patient/${storedToken}`, {
         headers: {
-          'Authorization': 'Bearer bypass',
+          'Authorization': `Bearer ${localStorage.getItem('careq_token') || 'bypass'}`,
           'Content-Type': 'application/json'
         }
       });

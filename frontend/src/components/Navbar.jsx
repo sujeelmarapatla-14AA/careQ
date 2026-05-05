@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS } from 'chart.js';
+import { BASE_URL } from '../api';
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,7 +46,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-        await fetch('http://localhost:5000/api/auth/logout', { method: 'POST' });
+        await fetch(`${BASE_URL}/api/auth/logout`, { method: 'POST' });
     } catch (e) {}
     localStorage.removeItem('careq_token');
     localStorage.removeItem('careq_username');

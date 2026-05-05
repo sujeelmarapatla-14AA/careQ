@@ -4,8 +4,19 @@ const https = require('https');
 // Use Supabase Management API to run SQL
 // This requires the service role key or management API token
 
-const PROJECT_REF = 'qrcnpaikpzrcabdnrydu';
+// Read project ref from SUPABASE_URL env var — never hardcode it
+const SUPABASE_URL = process.env.SUPABASE_URL;
+if (!SUPABASE_URL) {
+  console.error('❌ SUPABASE_URL is not set in environment variables.');
+  process.exit(1);
+}
+const PROJECT_REF = new URL(SUPABASE_URL).hostname.split('.')[0];
 const ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+if (!ANON_KEY) {
+  console.error('❌ SUPABASE_ANON_KEY is not set in environment variables.');
+  process.exit(1);
+}
 
 const sql = `
 CREATE TABLE IF NOT EXISTS rooms (

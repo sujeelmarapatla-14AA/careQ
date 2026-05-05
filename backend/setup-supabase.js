@@ -19,7 +19,8 @@ async function setup() {
   if (connErr && connErr.code === '42P01') {
     console.log('❌ Tables do not exist yet.');
     console.log('\n📋 MANUAL STEP REQUIRED:');
-    console.log('1. Open: https://app.supabase.com/project/qrcnpaikpzrcabdnrydu/sql/new');
+    const projectRef = SUPABASE_URL ? new URL(SUPABASE_URL).hostname.split('.')[0] : 'YOUR_PROJECT_REF';
+    console.log(`1. Open: https://app.supabase.com/project/${projectRef}/sql/new`);
     console.log('2. Paste and run the contents of: backend/supabase-schema.sql');
     console.log('3. Then run this script again: node setup-supabase.js\n');
     return;

@@ -28,7 +28,8 @@ async function seed() {
     console.log('   ALTER TABLE rooms DISABLE ROW LEVEL SECURITY;');
     console.log('   ALTER TABLE patients DISABLE ROW LEVEL SECURITY;');
     console.log('   ALTER TABLE activity_log DISABLE ROW LEVEL SECURITY;');
-    console.log('\n   URL: https://app.supabase.com/project/qrcnpaikpzrcabdnrydu/sql/new');
+    const projectRef = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).hostname.split('.')[0] : 'YOUR_PROJECT_REF';
+    console.log(`\n   URL: https://app.supabase.com/project/${projectRef}/sql/new`);
     return;
   }
   console.log('✅ Rooms seeded (12 rooms)');
