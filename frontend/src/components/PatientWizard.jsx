@@ -111,16 +111,16 @@ export default function PatientWizard({ onRegistered }) {
     <div style={{ maxWidth: '800px', margin: '0 auto' }} id="wizard-top">
       
       <div className="form-section-card mb-6">
-        <div className="flex-between mb-4">
-          <h2 className="text-xl" style={{ color: 'var(--text-primary)' }}>Register for Queue</h2>
-          <span className="priority-pill normal">Step {step} of 4</span>
+        <div className="flex-between mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 className="text-xl" style={{ color: '#002B49', fontWeight: 700, fontSize: '1.3rem' }}>Register for Queue</h2>
+          <span style={{ background: '#003B65', color: '#FFFFFF', padding: '4px 14px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700 }}>Step {step} of 4</span>
         </div>
-        <div style={{ height: '6px', background: 'var(--bg-overlay)', borderRadius: '3px', position: 'relative', overflow: 'hidden' }}>
-          <motion.div initial={{ width: 0 }} animate={{ width: `${(step / 4) * 100}%` }} transition={{ duration: 0.4 }} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, background: 'var(--accent-primary)', borderRadius: '3px' }} />
+        <div style={{ height: '6px', background: '#E2E8F0', borderRadius: '3px', position: 'relative', overflow: 'hidden' }}>
+          <motion.div initial={{ width: 0 }} animate={{ width: `${(step / 4) * 100}%` }} transition={{ duration: 0.4 }} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, background: '#003B65', borderRadius: '3px' }} />
         </div>
       </div>
 
-      {error && <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid var(--status-danger)', color: 'var(--status-danger)', padding: '12px', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', fontWeight: 'var(--weight-medium)' }}>{error}</motion.div>}
+      {error && <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} style={{ background: 'rgba(239,68,68,0.12)', border: '1.5px solid var(--status-danger)', color: '#EF4444', padding: '12px 16px', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: 700, fontSize: '0.9rem' }}>{error}</motion.div>}
 
       <AnimatePresence mode="wait">
         {/* STEP 1 */}
@@ -131,11 +131,11 @@ export default function PatientWizard({ onRegistered }) {
               
               <div className="emergency-toggle-card mb-6" onClick={() => update({ visitType: isEmergency ? 'Walk-in' : 'Emergency' })}>
                  <div>
-                    <span style={{ color: 'var(--text-primary)', fontWeight: 'var(--weight-semibold)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#002B49', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
                        {isEmergency && <AlertTriangle size={16} color="var(--status-danger)" />}
                        Emergency Case
                     </span>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-xs)', marginTop: '4px' }}>Toggle if patient requires immediate, life-saving care.</p>
+                    <p style={{ color: '#475569', fontSize: '0.82rem', marginTop: '4px', fontWeight: 500 }}>Toggle if patient requires immediate, life-saving care.</p>
                  </div>
                  <div className={`toggle-switch ${isEmergency ? 'on' : ''}`}>
                     <div className="toggle-knob"></div>
