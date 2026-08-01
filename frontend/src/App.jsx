@@ -31,9 +31,19 @@ const PageLoader = () => (
   </div>
 );
 
+import TargetCursor from './components/TargetCursor';
+
 function App() {
   return (
     <ThemeProvider>
+      <TargetCursor 
+        spinDuration={2}
+        hideDefaultCursor={false}
+        parallaxOn={true}
+        hoverDuration={0.2}
+        cursorColor="#003B65"
+        cursorColorOnTarget="#0066B2"
+      />
       <BrowserRouter>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <Navbar />

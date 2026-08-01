@@ -10,6 +10,8 @@ import { io } from 'socket.io-client';
 import PatientWizard from '../components/PatientWizard';
 import BedAvailability from '../components/BedAvailability';
 
+import SplitText from '../components/SplitText';
+
 const CountUp = ({ end, duration = 1.0 }) => {
   const [count, setCount] = useState(0);
   useEffect(() => {
@@ -72,19 +74,32 @@ export default function Landing() {
             
             {/* Left Text Content */}
             <div style={{ zIndex: 2 }}>
-              <h1 style={{ fontSize: 'clamp(2.6rem, 4.5vw, 4rem)', fontWeight: 700, color: '#002B49', lineHeight: 1.12, letterSpacing: '-1.5px', marginBottom: '24px' }}>
-                Smarter intelligence for better patient care
-              </h1>
+              
+              <div style={{ marginBottom: '24px' }}>
+                <SplitText
+                  text="Smarter intelligence for better patient care"
+                  tag="h1"
+                  delay={50}
+                  duration={1.1}
+                  ease="power3.out"
+                  splitType="words"
+                  from={{ opacity: 0, y: 35 }}
+                  to={{ opacity: 1, y: 0 }}
+                  threshold={0.1}
+                  textAlign="left"
+                  className="heltro-split-title"
+                />
+              </div>
               
               <p style={{ fontSize: '1.15rem', color: '#002B49', lineHeight: 1.6, marginBottom: '40px', maxWidth: '540px', opacity: 0.9 }}>
                 Streamlined clinical workflows boost efficiency, cut wait times, and enable faster, patient-centered care experiences.
               </p>
 
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                <Link to="/patient" className="btn-heltro" style={{ fontSize: '1rem', height: '52px', padding: '0 36px' }}>
+                <Link to="/patient" className="btn-heltro cursor-target" style={{ fontSize: '1rem', height: '52px', padding: '0 36px' }}>
                   Explore more
                 </Link>
-                <Link to="/staff" className="btn-heltro-outline" style={{ fontSize: '1rem', height: '52px', padding: '0 36px' }}>
+                <Link to="/staff" className="btn-heltro-outline cursor-target" style={{ fontSize: '1rem', height: '52px', padding: '0 36px' }}>
                   Staff Portal
                 </Link>
               </div>

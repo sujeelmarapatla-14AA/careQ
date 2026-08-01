@@ -1017,6 +1017,13 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
   font-family: var(--font-mono);
 }
 
+.heltro-split-title {
+  font-size: clamp(2.6rem, 4.5vw, 4rem);
+  font-weight: 700;
+  color: #002B49;
+  line-height: 1.12;
+  letter-spacing: -1.5px;
+}
 .heltro-card-shadow {
   background: #FFFFFF;
   border-radius: 16px;
