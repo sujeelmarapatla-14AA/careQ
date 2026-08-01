@@ -10,6 +10,7 @@ import { io } from 'socket.io-client';
 import PatientWizard from '../components/PatientWizard';
 import BedAvailability from '../components/BedAvailability';
 import SplitText from '../components/SplitText';
+import LineWaves from '../components/LineWaves';
 
 const CountUp = ({ end, duration = 1.0 }) => {
   const [count, setCount] = useState(0);
@@ -71,10 +72,27 @@ export default function Landing() {
   return (
     <div style={{ background: '#FFFFFF', overflowX: 'hidden' }}>
       
-      {/* 1. HERO SECTION - HELTRO IMAGE 1 DESIGN WITH ANIMATED TEXT */}
+      {/* 1. HERO SECTION - HELTRO IMAGE 1 DESIGN WITH ANIMATED TEXT & LINEWAVES */}
       <section style={{ background: 'linear-gradient(135deg, #7B9DAE 0%, #89A8B6 100%)', minHeight: '85vh', position: 'relative', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
         
-        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '64px 32px', width: '100%' }}>
+        {/* Interactive WebGL LineWaves Background */}
+        <LineWaves
+          speed={0.3}
+          innerLineCount={32}
+          outerLineCount={36}
+          warpIntensity={1.0}
+          rotation={-45}
+          edgeFadeWidth={0.0}
+          colorCycleSpeed={1.0}
+          brightness={0.35}
+          color1="#002B49"
+          color2="#0066B2"
+          color3="#00A3E0"
+          enableMouseInteraction={true}
+          mouseInfluence={2.0}
+        />
+        
+        <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '64px 32px', width: '100%', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '48px', alignItems: 'center' }}>
             
             {/* Left Text Content */}
