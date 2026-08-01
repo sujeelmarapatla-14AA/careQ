@@ -37,12 +37,13 @@ function App() {
   return (
     <ThemeProvider>
       <TargetCursor 
+        targetSelector=".cursor-target, .btn-heltro, .btn-heltro-outline, .btn-primary, .btn-secondary, button, a"
         spinDuration={2}
-        hideDefaultCursor={false}
+        hideDefaultCursor={true}
         parallaxOn={true}
         hoverDuration={0.2}
-        cursorColor="#003B65"
-        cursorColorOnTarget="#0066B2"
+        cursorColor="#ffffff"
+        cursorColorOnTarget="#B497CF"
       />
       <BrowserRouter>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
