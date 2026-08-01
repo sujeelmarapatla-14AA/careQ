@@ -52,13 +52,16 @@ export default function Navbar() {
   }
 
   const handleLogout = async () => {
+    triggerWaveTransition('logout');
     try {
       await fetch(`${BASE_URL}/api/auth/logout`, { method: 'POST' });
     } catch (e) {}
     localStorage.removeItem('careq_token');
     localStorage.removeItem('careq_username');
     localStorage.removeItem('careq_role');
-    navigate('/login');
+    setTimeout(() => {
+      navigate('/login');
+    }, 600);
   };
 
   const navLinks = [

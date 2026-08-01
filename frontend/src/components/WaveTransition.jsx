@@ -210,6 +210,7 @@ export const triggerWaveTransition = (roleOrTitle) => {
   if (roleOrTitle === 'staff') title = 'Opening Staff Command Matrix...';
   else if (roleOrTitle === 'admin') title = 'Opening Admin Executive Portal...';
   else if (roleOrTitle === 'patient') title = 'Opening Patient Portal...';
+  else if (roleOrTitle === 'logout' || roleOrTitle === 'signout') title = 'Signing Out of CareQ...';
   else if (typeof roleOrTitle === 'string') title = roleOrTitle;
 
   window.dispatchEvent(
