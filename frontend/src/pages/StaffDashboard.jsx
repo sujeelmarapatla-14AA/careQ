@@ -340,21 +340,21 @@ export default function StaffDashboard() {
                   </span>
                 </div>
 
-                <div className="mb-6 p-6" style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
-                  <h3 className="text-base mb-4" style={{ color: 'var(--text-primary)' }}>Personal Information</h3>
+                <div className="mb-6 p-6" style={{ background: '#F8FAFC', borderRadius: '12px', border: '1.5px solid #CBD5E1' }}>
+                  <h3 className="text-base mb-4" style={{ color: '#003B65', fontWeight: 700 }}>Personal Information</h3>
                   <div className="grid-2">
-                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Name</span><div className="text-sm font-semibold">{viewingPatient.patient_name || viewingPatient.fullName || 'N/A'}</div></div>
-                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Age</span><div className="text-sm font-semibold">{viewingPatient.age || 'N/A'}</div></div>
-                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Gender</span><div className="text-sm font-semibold">{viewingPatient.gender || 'N/A'}</div></div>
-                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Phone</span><div className="text-sm font-semibold">{viewingPatient.phone || 'N/A'}</div></div>
+                    <div><span className="text-xs" style={{ color: '#003B65', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Name</span><div className="text-sm font-bold" style={{ color: '#002B49' }}>{viewingPatient.patient_name || viewingPatient.fullName || 'N/A'}</div></div>
+                    <div><span className="text-xs" style={{ color: '#003B65', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Age</span><div className="text-sm font-bold" style={{ color: '#002B49' }}>{viewingPatient.age || 'N/A'}</div></div>
+                    <div><span className="text-xs" style={{ color: '#003B65', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Gender</span><div className="text-sm font-bold" style={{ color: '#002B49' }}>{viewingPatient.gender || 'N/A'}</div></div>
+                    <div><span className="text-xs" style={{ color: '#003B65', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Phone</span><div className="text-sm font-bold" style={{ color: '#002B49' }}>{viewingPatient.phone || 'N/A'}</div></div>
                   </div>
                 </div>
 
-                <div className="mb-6 p-6" style={{ background: 'rgba(239, 68, 68, 0.05)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                  <h3 className="text-base mb-4" style={{ color: 'var(--status-danger)' }}>Medical Information</h3>
+                <div className="mb-6 p-6" style={{ background: '#FFF5F5', borderRadius: '12px', border: '1.5px solid #FECDD3' }}>
+                  <h3 className="text-base mb-4" style={{ color: '#E11D48', fontWeight: 700 }}>Medical Information</h3>
                   <div className="flex-col gap-4">
-                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Condition</span><div className="text-sm font-semibold">{viewingPatient.condition || viewingPatient.chiefComplaint || 'Not specified'}</div></div>
-                    <div><span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Department</span><div className="text-sm font-semibold">{viewingPatient.department || 'General OPD'}</div></div>
+                    <div><span className="text-xs" style={{ color: '#003B65', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Condition</span><div className="text-sm font-bold" style={{ color: '#002B49' }}>{viewingPatient.condition || viewingPatient.chiefComplaint || 'Not specified'}</div></div>
+                    <div><span className="text-xs" style={{ color: '#003B65', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Department</span><div className="text-sm font-bold" style={{ color: '#002B49' }}>{viewingPatient.department || 'General OPD'}</div></div>
                   </div>
                 </div>
 
