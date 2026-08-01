@@ -1,57 +1,61 @@
 :root {
-  /* === MEDIXWEB DESIGN SYSTEM (Light Ice Cyan Healthcare Palette) === */
-  --bg-base:        #F0F9FF;
+  /* === HELTRO CORPORATE HEALTHCARE DESIGN SYSTEM === */
+  --bg-base:        #F8FAFC;
   --bg-surface:     #FFFFFF;
-  --bg-elevated:    #F8FAFC;
-  --bg-overlay:     #E0F2FE;
-  --bg-glass:       rgba(255, 255, 255, 0.88);
+  --bg-elevated:    #F1F5F9;
+  --bg-overlay:     #E2E8F0;
+  --bg-glass:       rgba(255, 255, 255, 0.94);
+
+  /* === HELTRO COLOR PALETTE === */
+  --heltro-navy:        #003B65;
+  --heltro-navy-dark:   #002B49;
+  --heltro-navy-hover:  #002744;
+  --heltro-hero-bg:     #89A8B6;
+  --heltro-hero-light:  #A4C2CE;
+  --heltro-accent:      #0066B2;
 
   /* === BORDERS === */
-  --border-subtle:  rgba(186, 230, 253, 0.6);
-  --border-default: rgba(14, 165, 233, 0.25);
-  --border-strong:  rgba(2, 132, 199, 0.4);
+  --border-subtle:  #E2E8F0;
+  --border-default: #CBD5E1;
+  --border-strong:  #94A3B8;
 
-  /* === BRAND ACCENT — Medix Cyan & Sky Blue === */
-  --accent-primary: #0284C7;
-  --accent-cyan:    #0EA5E9;
-  --accent-teal:    #06B6D4;
-  --accent-glow:    rgba(14, 165, 233, 0.2);
-  --accent-hover:   #0369A1;
+  /* === BRAND ACCENTS === */
+  --accent-primary: #003B65;
+  --accent-cyan:    #0066B2;
+  --accent-teal:    #0D9488;
+  --accent-glow:    rgba(0, 59, 101, 0.12);
+  --accent-hover:   #002B49;
 
-  --nav-bg:         rgba(240, 249, 255, 0.9);
+  --nav-bg:         rgba(255, 255, 255, 0.95);
 
   /* === SEMANTIC STATUS COLORS === */
   --status-success: #10B981;
   --status-warning: #F59E0B;
   --status-danger:  #EF4444;
-  --status-info:    #0284C7;
+  --status-info:    #0066B2;
   --status-neutral: #64748B;
 
   /* === TYPOGRAPHY COLORS === */
-  --text-primary:   #0F172A;
+  --text-primary:   #002B49;
   --text-secondary: #334155;
   --text-tertiary:  #64748B;
-  --text-muted:     #64748B;
-  --text-accent:    #0284C7;
-
-  /* === SPECIAL — ICU RED ALERT === */
-  --icu-critical-bg:  rgba(239,68,68,0.08);
-  --icu-critical-border: rgba(239,68,68,0.25);
+  --text-muted:     #94A3B8;
+  --text-accent:    #003B65;
 
   /* === TYPOGRAPHY SYSTEM === */
-  --font-sans: "Plus Jakarta Sans", "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "DM Mono", monospace;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 
   /* === SCALE === */
-  --text-xs:   11px;
-  --text-sm:   13px;
-  --text-base: 15px;
-  --text-lg:   17px;
-  --text-xl:   20px;
-  --text-2xl:  24px;
-  --text-3xl:  32px;
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 16px;
+  --text-lg:   18px;
+  --text-xl:   22px;
+  --text-2xl:  28px;
+  --text-3xl:  36px;
   --text-4xl:  48px;
-  --text-5xl:  64px;
+  --text-5xl:  58px;
 
   /* === WEIGHTS === */
   --weight-normal:   400;
@@ -62,39 +66,30 @@
   /* === LINE HEIGHTS === */
   --leading-tight:  1.2;
   --leading-normal: 1.5;
-  --leading-relaxed: 1.7;
+  --leading-relaxed: 1.6;
 
-  /* === LETTER SPACING === */
-  --tracking-tight: -0.02em;
-  --tracking-normal: 0;
-  --tracking-wide:  0.06em;
-  --tracking-wider: 0.12em;
-
-  /* === SPACING & LAYOUT === */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
+  /* === 8PX GRID SPACING SYSTEM === */
+  --space-8:  8px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
 
   /* === BORDER RADIUS === */
-  --radius-sm:  8px;
-  --radius-md:  14px;
-  --radius-lg:  20px;
-  --radius-xl:  24px;
-  --radius-2xl: 32px;
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-2xl: 24px;
   --radius-full: 9999px;
 
   /* === LAYOUT === */
-  --nav-height:   72px;
+  --nav-height:   80px;
   --sidebar-width: 250px;
-  --content-max:  1280px;
-  --card-padding: var(--space-6);
+  --content-max:  1240px;
+  --card-padding: 32px;
 
   /* Overrides for legacy */
   --bg-main: var(--bg-base);
@@ -105,11 +100,6 @@
 
 /* === DARK MODE OVERRIDES === */
 :root[data-theme="dark"] {
-  --bg-base:        #0A1128;
-  --bg-surface:     #121D3B;
-  --bg-elevated:    #1C2A4E;
-  --bg-overlay:     #253763;
-  --bg-glass:       rgba(18, 29, 59, 0.85);
 
   --border-subtle:  rgba(56, 189, 248, 0.15);
   --border-default: rgba(56, 189, 248, 0.25);
@@ -951,9 +941,89 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
 .glass-panel {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  padding: var(--space-32);
 }
+
+/* === HELTRO DESIGN SYSTEM UTILITIES === */
+.btn-heltro {
+  height: 48px;
+  padding: 0 28px;
+  background: var(--heltro-navy, #003B65);
+  color: #FFFFFF !important;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 59, 101, 0.15);
+}
+.btn-heltro:hover {
+  background: var(--heltro-navy-dark, #002B49);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 59, 101, 0.25);
+}
+
+.btn-heltro-outline {
+  height: 48px;
+  padding: 0 28px;
+  background: #FFFFFF;
+  color: var(--heltro-navy, #003B65) !important;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--heltro-navy, #003B65);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+}
+.btn-heltro-outline:hover {
+  background: var(--bg-elevated);
+  border-color: var(--heltro-navy-dark, #002B49);
+  transform: translateY(-1px);
+}
+
+.heltro-numbered-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid #E2E8F0;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.heltro-numbered-item:hover {
+  color: var(--heltro-accent, #0066B2);
+  padding-left: 6px;
+}
+.heltro-numbered-num {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-right: 16px;
+  font-family: var(--font-mono);
+}
+
+.heltro-card-shadow {
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 20px rgba(0, 43, 73, 0.04);
+}
+
 
 /* === MEDIXWEB CUSTOM COMPONENT DESIGN SYSTEM === */
 .btn-medix {
