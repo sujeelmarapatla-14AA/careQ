@@ -64,23 +64,50 @@ export default function PatientWizard({ onRegistered }) {
   const submitForm = async () => {
     setLoading(true); setError('');
     try {
-      const res = await fetch(BASE_URL + '/api/queue/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-           patient_name: data.fullName, 
-           condition: data.complaint, 
-           severity: isEmergency ? data.severity : 30,
-           department: data.department,
-           visitType: data.visitType,
-           age: data.age,
-           gender: data.gender,
-           phone: data.phone
-        }),
-      });
-      const resData = await res.json();
-      
-      if (resData.token || resData.token_number) {
+      const payload = { 
+        patient_name: data.fullName, 
+        condition: data.complaint, 
+        severity: isEmergency ? data.severity : 30,
+        department: data.department,
+        visitType: data.visitType,
+        age: data.age,
+        gender: data.gender,
+        phone: data.phone
+      };
+
+      let resData = null;
+
+      // 1. Try configured BASE_URL first
+      try {
+        const res = await fetch(BASE_URL + '/api/queue/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          resData = await res.json();
+        }
+      } catch (e1) {
+        console.warn('BASE_URL fetch failed, trying relative fallback:', e1.message);
+      }
+
+      // 2. Relative endpoint fallback
+      if (!resData) {
+        try {
+          const relRes = await fetch('/api/queue/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (relRes.ok) {
+            resData = await relRes.json();
+          }
+        } catch (e2) {
+          console.warn('Relative fetch failed:', e2.message);
+        }
+      }
+
+      if (resData && (resData.token || resData.token_number)) {
         const tokenNumber = resData.token || resData.token_number;
         
         try {
@@ -94,12 +121,16 @@ export default function PatientWizard({ onRegistered }) {
           setTimeout(() => socket.disconnect(), 1000);
         } catch(e) {}
 
-        onRegistered(tokenNumber);
+        if (typeof onRegistered === 'function') {
+          onRegistered(tokenNumber);
+        } else {
+          alert(`Token Generated Successfully!\n\nYour Token Number is: ${tokenNumber}\nDepartment: ${data.department}\nEstimated Wait: ${resData.estimatedWaitMins || 15} mins`);
+        }
       } else {
-        setError(resData.error || 'Registration failed. No token received.');
+        setError(resData?.error || 'Registration failed. No token received from server.');
       }
     } catch(e) {
-      setError('Server unreachable. Please check your connection.');
+      setError('Server unreachable. Please check backend connection.');
     } finally {
       setLoading(false);
     }
@@ -251,9 +282,9 @@ export default function PatientWizard({ onRegistered }) {
               
               {isEmergency && (
                 <>
-                  <div className="form-group mb-6 p-6" style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)' }}>
-                    <div className="flex-between mb-4">
-                       <label className="form-label mb-0" style={{ color: 'var(--text-primary)' }}>Triage Severity</label>
+                  <div className="form-group mb-6 p-6" style={{ background: '#F8FAFC', borderRadius: '12px', border: '1.5px solid #CBD5E1' }}>
+                    <div className="flex-between mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                       <label className="form-label mb-0" style={{ color: '#002B49', fontWeight: 700 }}>Triage Severity</label>
                        <span className="text-xl font-bold" style={{ color: data.severity >= 80 ? 'var(--status-danger)' : data.severity >= 40 ? 'var(--status-warning)' : 'var(--status-success)' }}>{data.severity}</span>
                     </div>
                     <input type="range" min="1" max="100" value={data.severity} onChange={e=>update({severity:Number(e.target.value)})} />
@@ -261,10 +292,10 @@ export default function PatientWizard({ onRegistered }) {
 
                   <div className="form-group mb-6">
                     <label className="form-label">Symptoms</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', background: 'var(--bg-elevated)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1.5px solid #CBD5E1' }}>
                       {SYMPTOM_LIST.map(sym => (
-                        <label key={sym} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-                          <input type="checkbox" checked={data.symptoms.includes(sym)} onChange={() => update({ symptoms: toggleArrayItem(data.symptoms, sym) })} style={{ accentColor: 'var(--accent-primary)', width: '16px', height: '16px' }} />
+                        <label key={sym} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#002B49', fontSize: '0.9rem', fontWeight: 600 }}>
+                          <input type="checkbox" checked={data.symptoms.includes(sym)} onChange={() => update({ symptoms: toggleArrayItem(data.symptoms, sym) })} style={{ accentColor: '#003B65', width: '16px', height: '16px' }} />
                           {sym}
                         </label>
                       ))}
@@ -304,31 +335,31 @@ export default function PatientWizard({ onRegistered }) {
             <div className="form-section-card">
               <div className="form-section-label flex gap-2 items-center"><CheckCircle size={16} /> Review & Confirm</div>
               
-              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', padding: '20px', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ background: '#F8FAFC', border: '1.5px solid #CBD5E1', borderRadius: '12px', padding: '20px', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                  <div>
-                    <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--accent-primary)' }}>Personal Details</h4>
-                    <div className="grid-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                       <div><strong style={{ color: 'var(--text-primary)' }}>Name:</strong> {data.fullName}</div>
-                       <div><strong style={{ color: 'var(--text-primary)' }}>Age/Gender:</strong> {data.age} / {data.gender}</div>
-                       <div><strong style={{ color: 'var(--text-primary)' }}>Phone:</strong> {data.phone}</div>
+                    <h4 className="text-sm font-bold mb-2" style={{ color: '#003B65', fontSize: '0.95rem' }}>Personal Details</h4>
+                    <div className="grid-2 text-sm" style={{ color: '#334155' }}>
+                       <div><strong style={{ color: '#002B49' }}>Name:</strong> {data.fullName}</div>
+                       <div><strong style={{ color: '#002B49' }}>Age/Gender:</strong> {data.age} / {data.gender}</div>
+                       <div><strong style={{ color: '#002B49' }}>Phone:</strong> {data.phone}</div>
                     </div>
                  </div>
-                 <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
-                    <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--accent-primary)' }}>Visit Details</h4>
-                    <div className="grid-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                       <div><strong style={{ color: 'var(--text-primary)' }}>Dept:</strong> {data.department}</div>
-                       <div><strong style={{ color: 'var(--text-primary)' }}>Type:</strong> {data.visitType}</div>
-                       <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: 'var(--text-primary)' }}>Reason:</strong> {data.complaint}</div>
+                 <div style={{ borderTop: '1px solid #CBD5E1', paddingTop: '12px' }}>
+                    <h4 className="text-sm font-bold mb-2" style={{ color: '#003B65', fontSize: '0.95rem' }}>Visit Details</h4>
+                    <div className="grid-2 text-sm" style={{ color: '#334155' }}>
+                       <div><strong style={{ color: '#002B49' }}>Dept:</strong> {data.department}</div>
+                       <div><strong style={{ color: '#002B49' }}>Type:</strong> {data.visitType}</div>
+                       <div style={{ gridColumn: '1 / -1' }}><strong style={{ color: '#002B49' }}>Reason:</strong> {data.complaint}</div>
                     </div>
                  </div>
               </div>
 
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '2rem' }}>
-                <input type="checkbox" id="consent" required style={{ accentColor: 'var(--accent-primary)', width: '20px', height: '20px' }} />
-                <label htmlFor="consent" style={{ color: 'var(--text-primary)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>I confirm the above information is accurate.</label>
+                <input type="checkbox" id="consent" required style={{ accentColor: '#003B65', width: '20px', height: '20px', cursor: 'pointer' }} />
+                <label htmlFor="consent" style={{ color: '#002B49', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer' }}>I confirm the above information is accurate.</label>
               </div>
               
-              <button onClick={submitForm} disabled={loading} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1.1rem', justifyContent: 'center' }}>
+              <button onClick={submitForm} disabled={loading} className="btn-primary cursor-target" style={{ width: '100%', padding: '16px', fontSize: '1.1rem', justifyContent: 'center' }}>
                  {loading ? <Loader2 className="spin-ico" /> : 'Get Queue Token'}
               </button>
             </div>
