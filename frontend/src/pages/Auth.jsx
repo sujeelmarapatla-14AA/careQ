@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Fingerprint, AlertCircle, Check, Loader2, User, Phone, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_URL } from '../api';
+import { triggerWaveTransition } from '../components/WaveTransition';
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState('patient'); // 'patient', 'staff', 'admin'
@@ -123,12 +124,14 @@ export default function Auth() {
     localStorage.setItem('careq_token', data.token); 
     localStorage.setItem('careq_username', data.username);
     localStorage.setItem('careq_role', data.role);
+
+    triggerWaveTransition(data.role);
     
     setTimeout(() => {
       if (data.role === 'admin') navigate('/admin');
       else if (data.role === 'staff') navigate('/staff');
       else navigate('/patient');
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -144,7 +147,7 @@ export default function Auth() {
         {!requires2FA && (
           <div style={{ display: 'flex', gap: '10px', marginBottom: '2rem', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', padding: '6px', borderRadius: '12px' }}>
              {[{ id: 'patient', label: 'Patient Node'}, { id: 'staff', label: 'Staff' }, { id: 'admin', label: 'Admin' }].map(tab => (
-               <button key={tab.id} onClick={() => { setActiveTab(tab.id); setError(''); setEmail(''); setPassword(''); }} 
+               <button key={tab.id} onClick={() => { setActiveTab(tab.id); setError(''); setEmail(''); setPassword(''); triggerWaveTransition(tab.id); }} 
                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: activeTab === tab.id ? 'var(--bg-surface)' : 'transparent', color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: activeTab === tab.id ? 700 : 500, cursor: 'pointer', transition: '0.3s', boxShadow: activeTab === tab.id ? '0 4px 10px rgba(0,0,0,0.1)' : 'none' }}>
                  {tab.label}
                </button>

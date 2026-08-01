@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS } from 'chart.js';
 import { BASE_URL } from '../api';
 
+import { triggerWaveTransition } from './WaveTransition';
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('careq-theme') || 'light');
@@ -169,10 +171,10 @@ export default function Navbar() {
             }}
           >
             <Link to="/" onClick={() => setMobileOpen(false)} style={{ fontSize: '1rem', fontWeight: 600, color: '#002B49', textDecoration: 'none' }}>Home</Link>
-            <Link to="/patient" onClick={() => setMobileOpen(false)} style={{ fontSize: '1rem', fontWeight: 600, color: '#002B49', textDecoration: 'none' }}>Patient Kiosk</Link>
-            <Link to="/staff" onClick={() => setMobileOpen(false)} style={{ fontSize: '1rem', fontWeight: 600, color: '#002B49', textDecoration: 'none' }}>Staff Matrix</Link>
-            <Link to="/admin" onClick={() => setMobileOpen(false)} style={{ fontSize: '1rem', fontWeight: 600, color: '#002B49', textDecoration: 'none' }}>Admin Executive</Link>
-            <Link to="/patient" onClick={() => setMobileOpen(false)} className="btn-heltro" style={{ width: '100%', justifyContent: 'center' }}>
+            <Link to="/patient" onClick={() => { triggerWaveTransition('patient'); setMobileOpen(false); }} style={{ fontSize: '1rem', fontWeight: 600, color: '#002B49', textDecoration: 'none' }}>Patient Kiosk</Link>
+            <Link to="/staff" onClick={() => { triggerWaveTransition('staff'); setMobileOpen(false); }} style={{ fontSize: '1rem', fontWeight: 600, color: '#002B49', textDecoration: 'none' }}>Staff Matrix</Link>
+            <Link to="/admin" onClick={() => { triggerWaveTransition('admin'); setMobileOpen(false); }} style={{ fontSize: '1rem', fontWeight: 600, color: '#002B49', textDecoration: 'none' }}>Admin Executive</Link>
+            <Link to="/patient" onClick={() => { triggerWaveTransition('patient'); setMobileOpen(false); }} className="btn-heltro" style={{ width: '100%', justifyContent: 'center' }}>
               Appointment
             </Link>
           </motion.div>

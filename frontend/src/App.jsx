@@ -32,6 +32,7 @@ const PageLoader = () => (
 );
 
 import TargetCursor from './components/TargetCursor';
+import WaveTransition from './components/WaveTransition';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
         cursorColor="#ffffff"
         cursorColorOnTarget="#B497CF"
       />
+      <WaveTransition />
       <BrowserRouter>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <Navbar />
