@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Moon, Sun, Phone, ChevronDown, Activity, Plus } from 'lucide-react';
+import { Menu, X, Moon, Sun, Phone, ChevronDown, Activity, Plus, User, Stethoscope, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chart as ChartJS } from 'chart.js';
 import { BASE_URL } from '../api';
@@ -9,9 +9,16 @@ import { triggerWaveTransition } from './WaveTransition';
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [portalsOpen, setPortalsOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('careq-theme') || 'light');
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handlePortalClick = (role, path) => {
+    setPortalsOpen(false);
+    triggerWaveTransition(role);
+    navigate(path);
+  };
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -96,9 +103,143 @@ export default function Navbar() {
             <a href="#about" style={{ fontSize: '0.95rem', fontWeight: 500, color: '#475569', textDecoration: 'none' }}>About</a>
             
             {/* Quick Portals Dropdown Trigger */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#475569' }}>Portals</span>
-              <ChevronDown size={14} color="#475569" />
+            <div 
+              style={{ position: 'relative' }}
+              onMouseEnter={() => setPortalsOpen(true)}
+              onMouseLeave={() => setPortalsOpen(false)}
+            >
+              <button 
+                onClick={() => setPortalsOpen(!portalsOpen)}
+                className="cursor-target"
+                style={{ 
+                  background: portalsOpen ? '#F1F5F9' : 'transparent', 
+                  border: 'none', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  fontSize: '0.95rem', 
+                  fontWeight: 600, 
+                  color: '#002B49', 
+                  cursor: 'pointer',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>Portals</span>
+                <ChevronDown size={14} color="#003B65" style={{ transform: portalsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+
+              <AnimatePresence>
+                {portalsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '0',
+                      minWidth: '280px',
+                      background: '#FFFFFF',
+                      border: '1.5px solid #CBD5E1',
+                      borderRadius: '16px',
+                      padding: '12px',
+                      boxShadow: '0 12px 32px rgba(0, 43, 73, 0.14)',
+                      zIndex: 1000,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 10px 6px' }}>
+                      Select Login Portal
+                    </div>
+
+                    <button
+                      onClick={() => handlePortalClick('patient', '/login')}
+                      className="cursor-target"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'transparent',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(0,102,178,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0066B2' }}>
+                        <User size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#002B49' }}>Patient Portal</div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Token registration & status</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => handlePortalClick('staff', '/login')}
+                      className="cursor-target"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'transparent',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981' }}>
+                        <Stethoscope size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#002B49' }}>Staff Command Matrix</div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Live queue & bed controls</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => handlePortalClick('admin', '/login')}
+                      className="cursor-target"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'transparent',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8B5CF6' }}>
+                        <Shield size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#002B49' }}>Admin Executive Centre</div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Hospital metrics & analytics</div>
+                      </div>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <a href="#metrics" style={{ fontSize: '0.95rem', fontWeight: 500, color: '#475569', textDecoration: 'none' }}>Metrics</a>
