@@ -1,4 +1,20 @@
-﻿require('dotenv').config();
+require('dotenv').config();
+
+// 🛡️ Global Process Safety Net — prevents server crash on unhandled errors/rejections
+process.on('uncaughtException', (err) => {
+  console.error('🛡️ Process Uncaught Exception (prevented crash):', err?.stack || err?.message || err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🛡️ Process Unhandled Rejection (prevented crash):', reason);
+});
+
+const safeJsonParse = (str, fallback = {}) => {
+  if (!str) return fallback;
+  if (typeof str === 'object') return str;
+  try { return JSON.parse(str); } catch (e) { return fallback; }
+};
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -1514,6 +1530,14 @@ app.patch('/api/rooms/:id/clear', async (req, res) => {
 // ==========================================
 const { setupResourceRoutes } = require('./resource-api');
 setupResourceRoutes(app, io, authenticate);
+
+// 🛡️ Global Express Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error('🛡️ Express Route Exception Handled:', err?.stack || err?.message || err);
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({ error: err?.message || 'Internal Server Error', success: false });
+  }
+});
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../frontend/dist/index.html')));
 

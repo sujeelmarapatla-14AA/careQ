@@ -8,6 +8,12 @@ const { v4: uuidv4 } = require('uuid');
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
+const safeJsonParse = (str, fallback = {}) => {
+  if (!str) return fallback;
+  if (typeof str === 'object') return str;
+  try { return JSON.parse(str); } catch (e) { return fallback; }
+};
+
 const logActivity = (action, data, callback) => {
   const id = uuidv4();
   const metadata = JSON.stringify(data.metadata || {});
@@ -59,7 +65,7 @@ const setupResourceRoutes = (app, io, authenticate) => {
       
       // Parse metadata JSON for each resource and extract capacity info
       const parsed = resources.map(r => {
-        const metadata = r.metadata ? JSON.parse(r.metadata) : {};
+        const metadata = safeJsonParse(r.metadata, {});
         return {
           ...r,
           metadata,
@@ -84,7 +90,7 @@ const setupResourceRoutes = (app, io, authenticate) => {
       if (err) return res.status(500).json({ error: err.message });
       if (!resource) return res.status(404).json({ error: 'Resource not found' });
       
-      resource.metadata = resource.metadata ? JSON.parse(resource.metadata) : {};
+      resource.metadata = safeJsonParse(resource.metadata, {});
       resource.supports_slots = Boolean(resource.supports_slots);
       
       // Get active assignment if exists
