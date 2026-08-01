@@ -1024,6 +1024,22 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
   line-height: 1.12;
   letter-spacing: -1.5px;
 }
+.heltro-split-heading-2 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 700;
+  color: #002B49;
+  line-height: 1.22;
+  letter-spacing: -0.5px;
+}
+.heltro-split-banner {
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 800;
+  color: #003B65;
+  letter-spacing: -2px;
+  opacity: 0.9;
+  display: inline-block;
+  line-height: 1;
+}
 .heltro-card-shadow {
   background: #FFFFFF;
   border-radius: 16px;

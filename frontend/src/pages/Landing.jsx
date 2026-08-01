@@ -9,7 +9,6 @@ import { apiFetch, BASE_URL } from '../api';
 import { io } from 'socket.io-client';
 import PatientWizard from '../components/PatientWizard';
 import BedAvailability from '../components/BedAvailability';
-
 import SplitText from '../components/SplitText';
 
 const CountUp = ({ end, duration = 1.0 }) => {
@@ -26,6 +25,12 @@ const CountUp = ({ end, duration = 1.0 }) => {
     return () => clearInterval(timer);
   }, [end, duration]);
   return <span>{count}</span>;
+};
+
+// Safe image fallback handler so no image ever renders broken
+const handleImgError = (e, fallbackUrl) => {
+  e.target.onerror = null;
+  e.target.src = fallbackUrl || "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop&q=80";
 };
 
 export default function Landing() {
@@ -66,7 +71,7 @@ export default function Landing() {
   return (
     <div style={{ background: '#FFFFFF', overflowX: 'hidden' }}>
       
-      {/* 1. HERO SECTION - HELTRO IMAGE 1 DESIGN */}
+      {/* 1. HERO SECTION - HELTRO IMAGE 1 DESIGN WITH ANIMATED TEXT */}
       <section style={{ background: 'linear-gradient(135deg, #7B9DAE 0%, #89A8B6 100%)', minHeight: '85vh', position: 'relative', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
         
         <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '64px 32px', width: '100%' }}>
@@ -79,7 +84,7 @@ export default function Landing() {
                 <SplitText
                   text="Smarter intelligence for better patient care"
                   tag="h1"
-                  delay={50}
+                  delay={45}
                   duration={1.1}
                   ease="power3.out"
                   splitType="words"
@@ -91,7 +96,7 @@ export default function Landing() {
                 />
               </div>
               
-              <p style={{ fontSize: '1.15rem', color: '#002B49', lineHeight: 1.6, marginBottom: '40px', maxWidth: '540px', opacity: 0.9 }}>
+              <p style={{ fontSize: '1.15rem', color: '#002B49', lineHeight: 1.6, marginBottom: '40px', maxWidth: '540px', opacity: 0.95 }}>
                 Streamlined clinical workflows boost efficiency, cut wait times, and enable faster, patient-centered care experiences.
               </p>
 
@@ -110,7 +115,8 @@ export default function Landing() {
               
               <div style={{ width: '100%', maxWidth: '480px', position: 'relative' }}>
                 <img 
-                  src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&auto=format&fit=crop&q=80" 
+                  src="https://images.unsplash.com/photo-1594824813571-28a77885097a?w=800&auto=format&fit=crop&q=80" 
+                  onError={(e) => handleImgError(e, "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=800&auto=format&fit=crop&q=80")}
                   alt="Doctor smiling with stethoscope" 
                   style={{ width: '100%', height: 'auto', borderRadius: '24px', display: 'block', objectFit: 'cover' }} 
                 />
@@ -149,29 +155,42 @@ export default function Landing() {
 
       </section>
 
-      {/* 2. RELIABLE MEDICAL CARE / ABOUT SECTION - HELTRO IMAGE 2 DESIGN */}
+      {/* 2. RELIABLE MEDICAL CARE / ABOUT SECTION WITH ANIMATED TEXT */}
       <section id="about" style={{ padding: '80px 32px', background: '#FFFFFF' }}>
         <div className="container" style={{ maxWidth: '1280px', margin: '0 auto' }}>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '64px', alignItems: 'flex-start' }}>
             
-            {/* Left Image Visual */}
-            <div style={{ borderRadius: '16px', overflow: 'hidden', height: '100%', minHeight: '440px' }}>
+            {/* Left Image Visual with Fallback */}
+            <div style={{ borderRadius: '16px', overflow: 'hidden', height: '100%', minHeight: '440px', background: '#F1F5F9' }}>
               <img 
-                src="https://images.unsplash.com/photo-1581579438747-1dc8d1e05842?w=800&auto=format&fit=crop&q=80" 
-                alt="Elderly couple reading album with caregiver" 
+                src="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?w=800&auto=format&fit=crop&q=80" 
+                onError={(e) => handleImgError(e, "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&auto=format&fit=crop&q=80")}
+                alt="Elderly patient receiving compassionate medical care" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: '440px' }} 
               />
             </div>
 
             {/* Right Content Column */}
             <div>
-              <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 700, color: '#002B49', lineHeight: 1.25, marginBottom: '32px' }}>
-                Reliable medical services focused on patient safety, comfort, and better outcomes, delivering quality care with compassion and precision
-              </h2>
+              <div style={{ marginBottom: '32px' }}>
+                <SplitText
+                  text="Reliable medical services focused on patient safety, comfort, and better outcomes, delivering quality care with compassion and precision"
+                  tag="h2"
+                  delay={30}
+                  duration={1.0}
+                  ease="power3.out"
+                  splitType="words"
+                  from={{ opacity: 0, y: 30 }}
+                  to={{ opacity: 1, y: 0 }}
+                  threshold={0.1}
+                  textAlign="left"
+                  className="heltro-split-heading-2"
+                />
+              </div>
 
               <div style={{ marginBottom: '40px' }}>
-                <Link to="/patient" className="btn-heltro">
+                <Link to="/patient" className="btn-heltro cursor-target">
                   Explore more
                 </Link>
               </div>
@@ -181,7 +200,7 @@ export default function Landing() {
                 {/* Numbered Feature Links */}
                 <div>
                   {featureList.map((item) => (
-                    <a key={item.num} href="#services" className="heltro-numbered-item">
+                    <a key={item.num} href="#services" className="heltro-numbered-item cursor-target">
                       <div>
                         <span className="heltro-numbered-num">{item.num}</span>
                         <span>{item.title}</span>
@@ -194,7 +213,8 @@ export default function Landing() {
                 {/* Sub feature card with Doctor consulting patient */}
                 <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '16px', border: '1px solid #E2E8F0' }}>
                   <img 
-                    src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=500&auto=format&fit=crop&q=80" 
+                    src="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=500&auto=format&fit=crop&q=80" 
+                    onError={(e) => handleImgError(e, "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=500&auto=format&fit=crop&q=80")}
                     alt="Doctor consulting patient" 
                     style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '12px', marginBottom: '16px' }} 
                   />
@@ -212,17 +232,27 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 3. WHY CHOOSE US / METRIC GRID SECTION - HELTRO IMAGE 3 DESIGN */}
+      {/* 3. WHY CHOOSE US / METRIC GRID SECTION WITH ANIMATED TEXT */}
       <section id="metrics" style={{ padding: '80px 32px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
         <div className="container" style={{ maxWidth: '1280px', margin: '0 auto' }}>
           
-          <div style={{ maxWidth: '800px', marginBottom: '56px' }}>
+          <div style={{ maxWidth: '820px', marginBottom: '56px' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#003B65', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '12px' }}>
               Why choose us
             </span>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.6rem)', fontWeight: 700, color: '#002B49', lineHeight: 1.2 }}>
-              Advanced medical solutions for managing chronic conditions and improving patient outcomes
-            </h2>
+            <SplitText
+              text="Advanced medical solutions for managing chronic conditions and improving patient outcomes"
+              tag="h2"
+              delay={35}
+              duration={1.0}
+              ease="power3.out"
+              splitType="words"
+              from={{ opacity: 0, y: 30 }}
+              to={{ opacity: 1, y: 0 }}
+              threshold={0.1}
+              textAlign="left"
+              className="heltro-split-heading-2"
+            />
           </div>
 
           {/* 4-Column Stat Grid */}
@@ -281,13 +311,14 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 4. HEALTHCARE FACILITY & HOURS BANNER SECTION - HELTRO IMAGE 4 DESIGN */}
+      {/* 4. HEALTHCARE FACILITY & HOURS BANNER SECTION */}
       <section id="facility" style={{ position: 'relative', background: '#FFFFFF', padding: '64px 32px' }}>
         <div className="container" style={{ maxWidth: '1280px', margin: '0 auto' }}>
           
-          <div style={{ position: 'relative', borderRadius: '24px', overflow: 'hidden', minHeight: '440px' }}>
+          <div style={{ position: 'relative', borderRadius: '24px', overflow: 'hidden', minHeight: '440px', background: '#002B49' }}>
             <img 
-              src="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1200&auto=format&fit=crop&q=80" 
+              src="https://images.unsplash.com/photo-1551076805-e1869033e561?w=1200&auto=format&fit=crop&q=80" 
+              onError={(e) => handleImgError(e, "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1200&auto=format&fit=crop&q=80")}
               alt="Medical surgeon in mask" 
               style={{ width: '100%', height: '480px', objectFit: 'cover', display: 'block' }} 
             />
@@ -339,17 +370,27 @@ export default function Landing() {
 
           </div>
 
-          {/* Bottom Large Decorative Text Banner */}
+          {/* Bottom Animated Text Banner */}
           <div style={{ textAlign: 'center', marginTop: '48px', overflow: 'hidden' }}>
-            <span style={{ fontSize: 'clamp(3rem, 8vw, 7rem)', fontWeight: 800, color: '#003B65', letterSpacing: '-2px', opacity: 0.9, display: 'block', lineHeight: 1 }}>
-              Health checkup
-            </span>
+            <SplitText
+              text="Health checkup"
+              tag="span"
+              delay={50}
+              duration={1.2}
+              ease="power3.out"
+              splitType="chars"
+              from={{ opacity: 0, y: 40 }}
+              to={{ opacity: 1, y: 0 }}
+              threshold={0.1}
+              textAlign="center"
+              className="heltro-split-banner"
+            />
           </div>
 
         </div>
       </section>
 
-      {/* 5. CAREQ LIVE SYSTEMS INTEGRATION HUB */}
+      {/* 5. CAREQ LIVE SYSTEMS INTEGRATION HUB WITH ANIMATED TEXT */}
       <section style={{ padding: '80px 32px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
         <div className="container" style={{ maxWidth: '1280px', margin: '0 auto' }}>
           
@@ -357,22 +398,34 @@ export default function Landing() {
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#003B65', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
               Live Clinical Matrix
             </span>
-            <h2 style={{ fontSize: '2.2rem', fontWeight: 700, color: '#002B49', marginBottom: '16px' }}>
-              Real-Time Patient Token & Bed Operations Engine
-            </h2>
+            <div style={{ marginBottom: '16px' }}>
+              <SplitText
+                text="Real-Time Patient Token & Bed Operations Engine"
+                tag="h2"
+                delay={40}
+                duration={1.0}
+                ease="power3.out"
+                splitType="words"
+                from={{ opacity: 0, y: 30 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.1}
+                textAlign="center"
+                className="heltro-split-heading-2"
+              />
+            </div>
             
             {/* View Switcher Tabs */}
             <div style={{ display: 'inline-flex', gap: '8px', background: '#FFFFFF', padding: '6px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
               <button 
                 onClick={() => setActiveTab('wizard')}
-                className={activeTab === 'wizard' ? 'btn-heltro' : 'btn-heltro-outline'}
+                className={activeTab === 'wizard' ? 'btn-heltro cursor-target' : 'btn-heltro-outline cursor-target'}
                 style={{ height: '40px', padding: '0 20px', fontSize: '0.88rem' }}
               >
                 Patient Token Registration
               </button>
               <button 
                 onClick={() => setActiveTab('beds')}
-                className={activeTab === 'beds' ? 'btn-heltro' : 'btn-heltro-outline'}
+                className={activeTab === 'beds' ? 'btn-heltro cursor-target' : 'btn-heltro-outline cursor-target'}
                 style={{ height: '40px', padding: '0 20px', fontSize: '0.88rem' }}
               >
                 Live Bed Infrastructure Grid
