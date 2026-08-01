@@ -117,10 +117,6 @@ export default function Navbar() {
               </div>
             </div>
 
-            <button onClick={toggleTheme} style={{ width: '38px', height: '38px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#FFFFFF', color: '#003B65', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Toggle Theme">
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-
             {loggedInUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#002B49' }}>
