@@ -1235,8 +1235,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
 
 /* === FLOATING GLASS CAPSULE NAVBAR (MATCHING USER IMAGE) === */
 .floating-glass-navbar {
-  position: fixed !important;
-  top: 16px !important;
+  position: absolute !important;
+  top: 24px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   width: calc(100% - 48px) !important;

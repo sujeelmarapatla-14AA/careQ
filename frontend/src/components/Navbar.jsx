@@ -79,6 +79,12 @@ export default function Navbar() {
     { name: 'Admin Hub', path: '/admin' }
   ];
 
+  const isHomePage = location.pathname === '/';
+
+  if (!isHomePage) {
+    return null;
+  }
+
   return (
     <header className="floating-glass-navbar">
       <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
