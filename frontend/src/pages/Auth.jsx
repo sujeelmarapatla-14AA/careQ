@@ -143,13 +143,39 @@ export default function Auth() {
       
       <motion.div className="auth-card">
         
-        {/* Role Tabs */}
+        {/* Role Tabs with Liquid Glass Magnifier Lens */}
         {!requires2FA && (
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '2rem', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', padding: '6px', borderRadius: '12px' }}>
+          <div className="liquid-glass-pill-bar" style={{ marginBottom: '2rem' }}>
              {[{ id: 'patient', label: 'Patient Node'}, { id: 'staff', label: 'Staff' }, { id: 'admin', label: 'Admin' }].map(tab => (
-               <button key={tab.id} onClick={() => { setActiveTab(tab.id); setError(''); setEmail(''); setPassword(''); triggerWaveTransition(tab.id); }} 
-                 style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: activeTab === tab.id ? 'var(--bg-surface)' : 'transparent', color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: activeTab === tab.id ? 700 : 500, cursor: 'pointer', transition: '0.3s', boxShadow: activeTab === tab.id ? '0 4px 10px rgba(0,0,0,0.1)' : 'none' }}>
-                 {tab.label}
+               <button 
+                 key={tab.id} 
+                 onClick={() => { setActiveTab(tab.id); setError(''); setEmail(''); setPassword(''); triggerWaveTransition(tab.id); }} 
+                 style={{ 
+                   flex: 1, 
+                   position: 'relative',
+                   padding: '12px 16px', 
+                   borderRadius: '9999px', 
+                   border: 'none', 
+                   background: 'transparent', 
+                   color: activeTab === tab.id ? '#FFFFFF' : '#94A3B8', 
+                   fontWeight: activeTab === tab.id ? 700 : 600, 
+                   fontSize: '0.9rem',
+                   cursor: 'pointer', 
+                   transition: 'color 0.2s',
+                   zIndex: 2,
+                   boxShadow: 'none'
+                 }}
+               >
+                 {activeTab === tab.id && (
+                   <motion.div
+                     layoutId="active-role-lens"
+                     className="liquid-glass-lens"
+                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                   />
+                 )}
+                 <span style={{ position: 'relative', zIndex: 3, display: 'inline-block' }}>
+                   {tab.label}
+                 </span>
                </button>
              ))}
           </div>

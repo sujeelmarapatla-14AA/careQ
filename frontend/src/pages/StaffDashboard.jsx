@@ -147,12 +147,57 @@ export default function StaffDashboard() {
         <div className="section-tag">Staff Dashboard</div>
         <h1 className="text-2xl" style={{ color: 'var(--text-primary)' }}>Live Queue & Bed Management</h1>
         
-        <div style={{ display: 'flex', gap: '8px', marginTop: '1.5rem', background: 'var(--bg-overlay)', borderRadius: '12px', padding: '6px', width: 'max-content' }}>
-          <button onClick={() => setActiveView('queue')} className={`btn ${activeView === 'queue' ? 'btn-secondary' : 'btn-ghost'}`} style={{ border: activeView === 'queue' ? '1px solid var(--accent-primary)' : '1px solid transparent', color: activeView === 'queue' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-            Queue & Beds
+        <div className="liquid-glass-pill-bar" style={{ marginTop: '1.5rem', width: 'max-content' }}>
+          <button 
+            onClick={() => setActiveView('queue')} 
+            style={{ 
+              position: 'relative',
+              padding: '10px 22px',
+              borderRadius: '9999px',
+              border: 'none',
+              background: 'transparent',
+              color: activeView === 'queue' ? '#FFFFFF' : '#94A3B8',
+              fontWeight: activeView === 'queue' ? 700 : 600,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              zIndex: 2
+            }}
+          >
+            {activeView === 'queue' && (
+              <motion.div
+                layoutId="staff-view-lens"
+                className="liquid-glass-lens"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span style={{ position: 'relative', zIndex: 3 }}>Queue & Beds</span>
           </button>
-          <button onClick={() => setActiveView('resources')} className={`btn ${activeView === 'resources' ? 'btn-secondary' : 'btn-ghost'}`} style={{ border: activeView === 'resources' ? '1px solid var(--accent-primary)' : '1px solid transparent', color: activeView === 'resources' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
-            <Activity size={18} /> Resource Availability
+          
+          <button 
+            onClick={() => setActiveView('resources')} 
+            style={{ 
+              position: 'relative',
+              padding: '10px 22px',
+              borderRadius: '9999px',
+              border: 'none',
+              background: 'transparent',
+              color: activeView === 'resources' ? '#FFFFFF' : '#94A3B8',
+              fontWeight: activeView === 'resources' ? 700 : 600,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              zIndex: 2
+            }}
+          >
+            {activeView === 'resources' && (
+              <motion.div
+                layoutId="staff-view-lens"
+                className="liquid-glass-lens"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span style={{ position: 'relative', zIndex: 3, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <Activity size={18} /> Resource Availability
+            </span>
           </button>
         </div>
       </header>

@@ -789,18 +789,47 @@ export default function BedAvailability({ isAdmin = false }) {
        {/* Bed Control Modal */}
        {renderBedModal()}
        
-       {/* HOSPITAL SELECTOR TABS */}
-       <div style={{ display: 'flex', gap: '15px', marginBottom: '2rem', flexWrap: 'wrap' }}>
-          <button onClick={()=>setActiveSite('arundati')} className={`h-tab ${activeSite==='arundati'?'active-live':''}`} style={{ padding: '12px 24px', borderRadius: '12px', background: activeSite==='arundati'?'rgba(14,165,233,0.15)':'rgba(0,0,0,0.3)', border: activeSite==='arundati'?'1px solid var(--cyan)':'1px solid var(--glass-border)', color: activeSite==='arundati'?'var(--cyan)':'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: '0.2s' }}>
-             ⭐ Arundati Hospital {activeSite==='arundati' && <span className="live-pulse">🔴 LIVE</span>}
-          </button>
-          <button onClick={()=>setActiveSite('citycare')} title="SHOWCASE DATA" className={`h-tab ${activeSite==='citycare'?'active-showcase':''}`} style={{ padding: '12px 24px', borderRadius: '12px', background: activeSite==='citycare'?'rgba(168,85,247,0.15)':'rgba(0,0,0,0.3)', border: activeSite==='citycare'?'1px solid #a855f7':'1px solid var(--glass-border)', color: activeSite==='citycare'?'#a855f7':'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: '0.2s' }}>
-             City Care General {activeSite==='citycare' && <span style={{ background: '#a855f7', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px' }}>PARTNER</span>}
-          </button>
-          <button onClick={()=>setActiveSite('medlife')} title="SHOWCASE DATA" className={`h-tab ${activeSite==='medlife'?'active-showcase':''}`} style={{ padding: '12px 24px', borderRadius: '12px', background: activeSite==='medlife'?'rgba(168,85,247,0.15)':'rgba(0,0,0,0.3)', border: activeSite==='medlife'?'1px solid #a855f7':'1px solid var(--glass-border)', color: activeSite==='medlife'?'#a855f7':'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: '0.2s' }}>
-             MedLife Specialty {activeSite==='medlife' && <span style={{ background: '#a855f7', color: '#fff', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px' }}>PARTNER</span>}
-          </button>
-       </div>
+        {/* HOSPITAL SELECTOR TABS WITH LIQUID GLASS MAGNIFIER LENS */}
+        <div className="liquid-glass-pill-bar" style={{ marginBottom: '2rem', width: 'max-content', flexWrap: 'wrap' }}>
+           {[
+             { id: 'arundati', label: '⭐ Arundati Hospital', live: true },
+             { id: 'citycare', label: 'City Care General', badge: 'PARTNER' },
+             { id: 'medlife', label: 'MedLife Specialty', badge: 'PARTNER' }
+           ].map(site => (
+             <button
+               key={site.id}
+               onClick={() => setActiveSite(site.id)}
+               style={{
+                 position: 'relative',
+                 padding: '12px 24px',
+                 borderRadius: '9999px',
+                 border: 'none',
+                 background: 'transparent',
+                 color: activeSite === site.id ? '#FFFFFF' : '#94A3B8',
+                 fontWeight: activeSite === site.id ? 700 : 600,
+                 fontSize: '0.92rem',
+                 cursor: 'pointer',
+                 zIndex: 2,
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: '8px'
+               }}
+             >
+               {activeSite === site.id && (
+                 <motion.div
+                   layoutId="active-hospital-site-lens"
+                   className="liquid-glass-lens"
+                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                 />
+               )}
+               <span style={{ position: 'relative', zIndex: 3, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                 {site.label}
+                 {site.live && activeSite === 'arundati' && <span className="live-pulse">🔴 LIVE</span>}
+                 {site.badge && <span style={{ background: 'rgba(168,85,247,0.8)', color: '#fff', fontSize: '0.68rem', padding: '2px 8px', borderRadius: '9999px', fontWeight: 700 }}>{site.badge}</span>}
+               </span>
+             </button>
+           ))}
+        </div>
 
        {activeSite !== 'arundati' && (
          <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', padding: '12px 20px', borderRadius: '8px', color: '#e9d5ff', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem' }}>
