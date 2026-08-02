@@ -685,76 +685,134 @@ nav, .navbar {
   line-height: var(--leading-relaxed);
 }
 
-/* === BUTTONS === */
-.btn, button {
+:root, :host { 
+  --glass-frost: 0.1;
+  --glass-saturation: 1.2;
+  --filter-id: url(#glass-filter-_r_b_);
+}
+
+.glass-surface__filter {
+  pointer-events: none;
+  opacity: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+/* === LIQUID GLASS BUTTON DESIGN SYSTEM === */
+.btn, button, .btn-primary, .btn-secondary, .btn-ghost, .btn-heltro, .btn-heltro-outline, .btn-medix, .btn-medix-outline, .btn-green, .btn-danger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
   outline: none;
   font-family: var(--font-sans);
+  position: relative;
+  border-radius: 9999px !important;
+  -webkit-backdrop-filter: var(--filter-id, url(#glass-filter-_r_b_)) saturate(var(--glass-saturation, 1.2)) blur(8px) !important;
+  backdrop-filter: var(--filter-id, url(#glass-filter-_r_b_)) saturate(var(--glass-saturation, 1.2)) blur(8px) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
 }
-.btn-primary {
-  background: var(--heltro-navy, #003B65) !important;
+
+.btn-primary, .btn-heltro {
+  background: linear-gradient(135deg, rgba(0, 59, 101, 0.95) 0%, rgba(0, 43, 73, 0.98) 100%) !important;
   color: #FFFFFF !important;
   font-size: var(--text-sm);
-  font-weight: 600;
-  padding: 10px 24px;
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-  box-shadow: 0 2px 8px rgba(0, 59, 101, 0.15);
+  font-weight: 700 !important;
+  padding: 12px 28px !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: inset 0 0 2px 1px lab(100% 0 0 / .45), 
+              inset 0 0 10px 4px lab(100% 0 0 / .2), 
+              inset 0 4px 16px lab(5.32% 1.61 -5.88 / .06), 
+              0 8px 24px rgba(0, 43, 73, 0.2) !important;
 }
-.btn-primary:hover {
-  background: var(--heltro-navy-dark, #002B49) !important;
-  transform: translateY(-1px);
+
+.btn-primary:hover, .btn-heltro:hover {
+  background: linear-gradient(135deg, rgba(0, 43, 73, 1) 0%, rgba(0, 27, 48, 1) 100%) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: inset 0 0 3px 1.5px lab(100% 0 0 / .6), 
+              inset 0 0 14px 6px lab(100% 0 0 / .25), 
+              0 12px 32px rgba(0, 59, 101, 0.35) !important;
 }
-.btn-secondary {
-  background: #FFFFFF !important;
+
+.btn-secondary, .btn-heltro-outline {
+  background: hsl(0 0% 100% / var(--glass-frost, 0.75)) !important;
   color: #002B49 !important;
   font-size: var(--text-sm);
-  font-weight: 600;
-  padding: 10px 24px;
-  border-radius: var(--radius-md);
+  font-weight: 700 !important;
+  padding: 12px 28px !important;
   border: 1.5px solid #CBD5E1 !important;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
+  box-shadow: inset 0 0 2px 1px lab(100% 0 0 / .35), 
+              inset 0 0 10px 4px lab(100% 0 0 / .15), 
+              0 4px 16px rgba(0, 43, 73, 0.06) !important;
 }
-.btn-secondary:hover {
-  background: #F8FAFC !important;
+
+.btn-secondary:hover, .btn-heltro-outline:hover {
+  background: #FFFFFF !important;
   border-color: #003B65 !important;
   color: #003B65 !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: inset 0 0 3px 1px lab(100% 0 0 / .5), 
+              0 8px 24px rgba(0, 59, 101, 0.15) !important;
 }
+
 .btn-ghost {
-  background: transparent;
-  color: #002B49;
+  background: hsl(0 0% 100% / 0.5) !important;
+  color: #002B49 !important;
   font-size: var(--text-sm);
-  font-weight: 600;
-  padding: 8px 18px;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
+  font-weight: 700 !important;
+  padding: 10px 20px !important;
+  border: 1px solid rgba(203, 213, 225, 0.6) !important;
+  box-shadow: inset 0 0 2px 1px lab(100% 0 0 / .25) !important;
 }
+
 .btn-ghost:hover {
-  color: #003B65;
-  background: #F1F5F9;
+  color: #003B65 !important;
+  background: #FFFFFF !important;
+  border-color: #003B65 !important;
+  transform: translateY(-1px) !important;
 }
-.btn-danger {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--status-danger);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+
+.btn-green {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.92) 0%, rgba(5, 150, 105, 0.95) 100%) !important;
+  color: #FFFFFF !important;
   font-size: var(--text-sm);
-  font-weight: 600;
-  padding: 10px 24px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
+  font-weight: 700 !important;
+  padding: 12px 28px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: inset 0 0 2px 1px lab(100% 0 0 / .45), 
+              0 8px 24px rgba(16, 185, 129, 0.25) !important;
 }
+
+.btn-green:hover {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.98) 0%, rgba(4, 120, 87, 1) 100%) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: inset 0 0 3px 1.5px lab(100% 0 0 / .6), 
+              0 12px 32px rgba(16, 185, 129, 0.35) !important;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.95) 100%) !important;
+  color: #FFFFFF !important;
+  font-size: var(--text-sm);
+  font-weight: 700 !important;
+  padding: 12px 28px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: inset 0 0 2px 1px lab(100% 0 0 / .45), 
+              0 8px 24px rgba(239, 68, 68, 0.25) !important;
+}
+
 .btn-danger:hover {
-  background: var(--status-danger);
-  color: #FFFFFF;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.98) 0%, rgba(185, 28, 28, 1) 100%) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: inset 0 0 3px 1.5px lab(100% 0 0 / .6), 
+              0 12px 32px rgba(239, 68, 68, 0.35) !important;
 }
 
 /* === FORM INPUTS & HIGH CONTRAST VISIBILITY === */
