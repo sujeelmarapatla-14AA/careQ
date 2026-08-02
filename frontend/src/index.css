@@ -176,7 +176,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: var(--weight-semibold); line-height: var(-
 }
 
 /* === NAV BAR === */
-nav, .navbar {
+.navbar-legacy {
   height: var(--nav-height);
   background: var(--nav-bg);
   backdrop-filter: blur(20px) saturate(180%);
@@ -1264,6 +1264,16 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
   height: 22px;
   background: rgba(0, 43, 73, 0.18);
   margin: 0 16px;
+}
+
+.desktop-nav {
+  background: transparent !important;
+  height: auto !important;
+  position: static !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 
