@@ -80,28 +80,30 @@ export default function Navbar() {
   ];
 
   return (
-    <header style={{ position: 'sticky', top: 0, zIndex: 100, background: '#FFFFFF', borderBottom: '1px solid #E2E8F0', height: '80px', display: 'flex', alignItems: 'center' }}>
-      <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 32px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <header className="floating-glass-navbar">
+      <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
         
-        {/* Brand Logo - Heltro Style */}
-        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#003B65' }}>
-            {/* Heltro 4-bar cross symbol */}
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M14 4H18V28H14V4Z" fill="#003B65"/>
-              <path d="M4 14H28V18H4V14Z" fill="#003B65"/>
-              <path d="M7 7L25 25L22 28L4 10L7 7Z" fill="#0066B2"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#003B65', letterSpacing: '-0.5px', fontFamily: 'var(--font-sans)' }}>
-            CareQ
-          </span>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {/* Brand Logo - Heltro Style */}
+          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#003B65' }}>
+              {/* Heltro 4-bar cross symbol */}
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 4H18V28H14V4Z" fill="#003B65"/>
+                <path d="M4 14H28V18H4V14Z" fill="#003B65"/>
+                <path d="M7 7L25 25L22 28L4 10L7 7Z" fill="#0066B2"/>
+              </svg>
+            </div>
+            <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#003B65', letterSpacing: '-0.5px', fontFamily: 'var(--font-sans)' }}>
+              CareQ
+            </span>
+          </Link>
 
-        {/* Desktop Navigation Links */}
-        <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-          
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+          {/* Vertical Divider Line | */}
+          <div className="nav-vertical-divider" />
+
+          {/* Desktop Navigation Links */}
+          <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             <Link to="/" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#002B49', textDecoration: 'none' }}>Home</Link>
             <a href="#about" style={{ fontSize: '0.95rem', fontWeight: 500, color: '#475569', textDecoration: 'none' }}>About</a>
             
